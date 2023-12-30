@@ -27,13 +27,12 @@ survey_count <- survey %>%
 survey$fishing_district <- as.factor(survey$fishing_district)
 
 
-
-
-##### METHODE PLOTLY ######################################################################################################
-
 # Définir les limites x et y pour conserver les mêmes échelles sur chaque graphique
 x_limits <- range(-kodiak$longitude)
 y_limits <- range(kodiak$latitude)
+
+##### METHODE PLOTLY ######################################################################################################
+
 
 # Créer un graphique de base avec Plotly
 base_plot <- plot_ly() %>%
