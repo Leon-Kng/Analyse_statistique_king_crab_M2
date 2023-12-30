@@ -1,4 +1,3 @@
-# Projet_modeles_stats_M2
 # README
 
 **King Crab Data**
