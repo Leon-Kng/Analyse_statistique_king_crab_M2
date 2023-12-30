@@ -64,7 +64,7 @@ celsius_simplified <- celsius %>%
   group_by(year) %>%
   summarise(temp_moy = mean(temp, na.rm = TRUE)) # calcul de la température moyenne pour chaque année
 
-survey <- left_join(survey, celsius_simplified, by = "year") # ajout de la température moyenne pour chaque année à survey
+survey_count <- left_join(survey_count, celsius_simplified, by = "year") # ajout de la température moyenne pour chaque année à survey
 
 # Salinity
 salinity$year <- paste0("19", salinity$year)
@@ -80,7 +80,7 @@ for (n in c(33,36,38,46)){ # on enlève les données en double
 salinity_simplified <- salinity %>% 
   group_by(year) %>%
   summarise(sal_moy = mean(salinity, na.rm = TRUE)) # calcul de la salinité moyenne pour chaque année
-survey <- left_join(survey, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à survey
+survey_count <- left_join(survey_count, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à survey
 
 # Dstns
 dstns$year <- paste0("19", dstns$year)
@@ -91,10 +91,10 @@ fleet$year <- paste0("19", fleet$year)
 fleet$year <- as.numeric(fleet$year)
 fleet$prev_year <- fleet$year - 1
 fleet_simplified <- fleet[,c(1,3)]
-fleet_simplified$year <- fleet_simplified$year+1 # ajout d'une année puis on modifiera le nom de la colonne pour donner le nb de crabes attrappés l'année précédente
+fleet_simplified$year <- fleet_simplified$year+1 # ajout d'une année puis on modifiera le nom de la colonne pour donner le nb de crabes pêchés l'année précédente
 fleet_simplified <- rename(fleet_simplified, crabs_caught_last_year = crabs_caught)
 fleet_simplified$year <- as.factor(fleet_simplified$year)
-survey <- left_join(survey, fleet_simplified, by = "year") # ajout du nombre de crabes attrappés l'année précédente
+survey_count <- left_join(survey_count, fleet_simplified, by = "year") # ajout du nombre de crabes pêchés l'année précédente
 
 
 
@@ -152,34 +152,31 @@ ggplot(celsius) +
 ## Test si température et salinité de l'eau a un effet sur l'effectif de crabe
 
 
-mod_eau <- lm(legal_males~temp_moy+sal_moy, data=survey)
+mod_eau <- lm(Nb_legal_males~temp_moy+sal_moy, data=survey_count)
 par(mfrow=c(2,2))
 plot(mod_eau)
 summary(mod_eau)
+par(mfrow=c(1,1))
+
+ggplot(survey_count) +
+  aes(x = temp_moy, y = Nb_legal_males) +
+  geom_point()
+
+ggplot(survey_count) +
+  aes(x = sal_moy, y = Nb_legal_males) +
+  geom_point()
 
 
 # Test de l'effet de m'activité de pêche de l'année précédente
+mod_peche <- lm(Nb_legal_males~crabs_caught_last_year, data = survey_count)
+par(mfrow=c(2,2))
+plot(mod_peche)
+summary(mod_peche)
 
-
-
+ggplot(survey_count) +
+  aes(x = crabs_caught_last_year, y = Nb_legal_males) +
+  geom_point()
 
 
 ## GROS MODELE !!
-# expression du nb de crabe total en fonction de 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
