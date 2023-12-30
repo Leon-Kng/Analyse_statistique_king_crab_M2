@@ -45,9 +45,16 @@ survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir 
 survey$year <- as.factor(survey$year)
 survey$legal_males <- survey$post_recruit + survey$recruit_males
 survey$Total_crabs <- rowSums(survey[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
-survey_count <- survey %>%
+df_global <- survey %>%
   group_by(year) %>%
-  summarise(Nb_legal_males = sum(legal_males))
+  summarise(legal_males = sum(legal_males), 
+            adu_fem = sum(adu_fem),
+            juv_fem = sum(juv_fem),
+            pre_recruit_1 = sum(pre_recruit_1),
+            pre_recruit_2 = sum(pre_recruit_2),
+            pre_recruit_3 = sum(pre_recruit_3),
+            pre_recruit_4 = sum(pre_recruit_4),
+            Total_crabs = sum(Total_crabs)) 
 survey$fishing_district <- as.factor(survey$fishing_district)
 
 # Celsius
@@ -58,13 +65,12 @@ celsius$date <- as.Date(paste0("01/", date_celsius$date), format = "%d/%m/%Y")
 
 celsius$year<- as.factor(celsius$year)
 celsius$month<- as.factor(celsius$month)
-celsius <- celsius[1:56,] # on enlève les années en trop par rapport à la salinité
 
 celsius_simplified <- celsius %>% 
   group_by(year) %>%
   summarise(temp_moy = mean(temp, na.rm = TRUE)) # calcul de la température moyenne pour chaque année
 
-survey_count <- left_join(survey_count, celsius_simplified, by = "year") # ajout de la température moyenne pour chaque année à survey
+df_global <- left_join(df_global, celsius_simplified, by = "year") # ajout de la température moyenne pour chaque année à survey
 
 # Salinity
 salinity$year <- paste0("19", salinity$year)
@@ -80,7 +86,7 @@ for (n in c(33,36,38,46)){ # on enlève les données en double
 salinity_simplified <- salinity %>% 
   group_by(year) %>%
   summarise(sal_moy = mean(salinity, na.rm = TRUE)) # calcul de la salinité moyenne pour chaque année
-survey_count <- left_join(survey_count, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à survey
+df_global <- left_join(df_global, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à survey
 
 # Dstns
 dstns$year <- paste0("19", dstns$year)
@@ -94,20 +100,23 @@ fleet_simplified <- fleet[,c(1,3)]
 fleet_simplified$year <- fleet_simplified$year+1 # ajout d'une année puis on modifiera le nom de la colonne pour donner le nb de crabes pêchés l'année précédente
 fleet_simplified <- rename(fleet_simplified, crabs_caught_last_year = crabs_caught)
 fleet_simplified$year <- as.factor(fleet_simplified$year)
-survey_count <- left_join(survey_count, fleet_simplified, by = "year") # ajout du nombre de crabes pêchés l'année précédente
+df_global <- left_join(df_global, fleet_simplified, by = "year") # ajout du nombre de crabes pêchés l'année précédente
 
 
 
 ### ANALYSE DES DONNEES ###################
 
-### Etude du prix des crabes ###
-plot(fleet$year, fleet$price_pound)
-
-
+## Df_global
+df_global_long <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, pre_recruit_1, pre_recruit_2, pre_recruit_3, pre_recruit_4), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
+ggplot(df_global_long) +
+  aes(x = year, y = count, color = crab_category, group = crab_category) +
+  geom_point() +
+  geom_line() +
+  theme_bw()
 
 ## Etude des données de survey 
-barplot(survey_count$Nb_legal_males~survey_count$year)
-ggplot(survey_count, aes(x=year, y=Nb_legal_males))+
+barplot(df_global$Nb_legal_males~df_global$year)
+ggplot(df_global, aes(x=year, y=Nb_legal_males))+
   geom_col()
 
 ggplot() + # sans correction du ratio et avec les années
@@ -152,28 +161,28 @@ ggplot(celsius) +
 ## Test si température et salinité de l'eau a un effet sur l'effectif de crabe
 
 
-mod_eau <- lm(Nb_legal_males~temp_moy+sal_moy, data=survey_count)
+mod_eau <- lm(Nb_legal_males~temp_moy+sal_moy, data=df_global)
 par(mfrow=c(2,2))
 plot(mod_eau)
 summary(mod_eau)
 par(mfrow=c(1,1))
 
-ggplot(survey_count) +
+ggplot(df_global) +
   aes(x = temp_moy, y = Nb_legal_males) +
   geom_point()
 
-ggplot(survey_count) +
+ggplot(df_global) +
   aes(x = sal_moy, y = Nb_legal_males) +
   geom_point()
 
 
 # Test de l'effet de m'activité de pêche de l'année précédente
-mod_peche <- lm(Nb_legal_males~crabs_caught_last_year, data = survey_count)
+mod_peche <- lm(Nb_legal_males~crabs_caught_last_year, data = df_global)
 par(mfrow=c(2,2))
 plot(mod_peche)
 summary(mod_peche)
 
-ggplot(survey_count) +
+ggplot(df_global) +
   aes(x = crabs_caught_last_year, y = Nb_legal_males) +
   geom_point()
 
