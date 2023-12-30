@@ -86,6 +86,15 @@ survey <- left_join(survey, salinity_simplified, by = "year") # ajout de la sali
 dstns$year <- paste0("19", dstns$year)
 dstns$year <- as.factor(dstns$year)
 
+# Fleet
+fleet$year <- paste0("19", fleet$year)
+fleet$year <- as.numeric(fleet$year)
+fleet$prev_year <- fleet$year - 1
+fleet_simplified <- fleet[,c(1,3)]
+fleet_simplified$year <- fleet_simplified$year+1 # ajout d'une année puis on modifiera le nom de la colonne pour donner le nb de crabes attrappés l'année précédente
+fleet_simplified <- rename(fleet_simplified, crabs_caught_last_year = crabs_caught)
+fleet_simplified$year <- as.factor(fleet_simplified$year)
+survey <- left_join(survey, fleet_simplified, by = "year") # ajout du nombre de crabes attrappés l'année précédente
 
 
 
@@ -147,6 +156,12 @@ mod_eau <- lm(legal_males~temp_moy+sal_moy, data=survey)
 par(mfrow=c(2,2))
 plot(mod_eau)
 summary(mod_eau)
+
+
+# Test de l'effet de m'activité de pêche de l'année précédente
+
+
+
 
 
 ## GROS MODELE !!
