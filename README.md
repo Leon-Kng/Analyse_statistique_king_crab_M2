@@ -1,1 +1,1 @@
-# Projet_mod-les_stats_M2
+# Projet_modeles_stats_M2
