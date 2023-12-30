@@ -1,0 +1,170 @@
+rm(list=ls())
+setwd("C:/Users/WIN7/Desktop/Projet MOST/Data")
+
+### Librairies ###
+library(dplyr) # pour modifier les données
+library(ggplot2) # graphiques
+library(tidyr)
+library(esquisse)
+library(bestNormalize)
+#library(reshape)
+
+### CHARGEMENT DES DONNEES ##################
+survey <- read.table("survey", stringsAsFactors=T)
+survey <-rename(survey,year = V1, fishing_district = V2,Station_ID=V3,pots_fished=V4,latitude_halfway_pot=V5,longitude_halfway_pot=V6,pre_recruit_4=V7,pre_recruit_3=V8,pre_recruit_2=V9,pre_recruit_1=V10,recruit_males=V11,post_recruit=V12,juv_fem=V13,adu_fem=V14)
+
+kodiak <- read.table("kodiak",stringsAsFactors=T)
+kodiak <-rename(kodiak, latitude= V1, longitude = V2)
+
+dstns <- read.table("dstns",stringsAsFactors=T)
+dstns <-rename(dstns,year = V1, length_mm = V2 , count_juv_f=V3,count_adu_f=V4 ,count_males=V5)
+
+fleet <- read.table("fleet",stringsAsFactors=T)
+fleet <-rename(fleet,year= V1, nbr_vessels = V2, crabs_caught=V3,total_weight_caught=V4,total_pot_lifts=V5,price_pound=V6)
+
+catch <- read.table("catch", stringsAsFactors=T)
+catch <-rename(catch,year = V1,  district= V2, total_count=V3, total_kg=V4)
+
+eggs <- read.table("eggs",stringsAsFactors=T)
+eggs <-rename(eggs, year= V1, estim_eggs_per_adu_f=V2)
+
+salinity <- read.table("salinity",stringsAsFactors=T)
+salinity<-rename(salinity,year = V1, month = V2,salinity=V3)
+
+celsius <- read.table("celsius",stringsAsFactors=T)
+celsius <-rename(celsius,year = V1, month = V2,temp=V3)
+
+fullness <- read.table("fullness",stringsAsFactors=T)
+fullness <-rename(fullness, year= V1, size_mm= V2,fullness0=V3,fullness1_29=V4,fullness30_59=V5,fullness60_89=V6,fullness90_100=V7)
+
+
+### MODIFICATION DES DONNEES ##################
+
+# Survey
+survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir une année
+survey$year <- as.factor(survey$year)
+survey$legal_males <- survey$post_recruit + survey$recruit_males
+survey$Total_crabs <- rowSums(survey[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
+survey_count <- survey %>%
+  group_by(year) %>%
+  summarise(Nb_legal_males = sum(legal_males))
+survey$fishing_district <- as.factor(survey$fishing_district)
+
+# Celsius
+celsius$year <- paste0("19", celsius$year) # ajout de 19 devant les nb pour avoir une année
+celsius$month <- ifelse(nchar(celsius$month) == 1, paste0("0", celsius$month), celsius$month) # ajout de 0 devant les mois à 1 chiffre
+date_celsius <- unite(celsius, col = "date", month, year, sep = "/")
+celsius$date <- as.Date(paste0("01/", date_celsius$date), format = "%d/%m/%Y")
+
+celsius$year<- as.factor(celsius$year)
+celsius$month<- as.factor(celsius$month)
+celsius <- celsius[1:56,] # on enlève les années en trop par rapport à la salinité
+
+celsius_simplified <- celsius %>% 
+  group_by(year) %>%
+  summarise(temp_moy = mean(temp, na.rm = TRUE)) # calcul de la température moyenne pour chaque année
+
+survey <- left_join(survey, celsius_simplified, by = "year") # ajout de la température moyenne pour chaque année à survey
+
+# Salinity
+salinity$year <- paste0("19", salinity$year)
+salinity$year<- as.factor(salinity$year)
+salinity$month<- as.factor(salinity$month)
+salinity$salinity<- as.numeric(salinity$salinity)
+
+for (n in c(33,36,38,46)){ # on enlève les données en double 
+  salinity[n,3]<-(salinity[n,3]+salinity[n+1,3])/2 # et on les remplace par une moyenne 
+  salinity<-salinity[-(n+1),]
+}
+
+salinity_simplified <- salinity %>% 
+  group_by(year) %>%
+  summarise(sal_moy = mean(salinity, na.rm = TRUE)) # calcul de la salinité moyenne pour chaque année
+survey <- left_join(survey, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à survey
+
+# Dstns
+dstns$year <- paste0("19", dstns$year)
+dstns$year <- as.factor(dstns$year)
+
+
+
+
+### ANALYSE DES DONNEES ###################
+
+### Etude du prix des crabes ###
+plot(fleet$year, fleet$price_pound)
+
+
+
+## Etude des données de survey 
+barplot(survey_count$Nb_legal_males~survey_count$year)
+ggplot(survey_count, aes(x=year, y=Nb_legal_males))+
+  geom_col()
+
+ggplot() + # sans correction du ratio et avec les années
+  geom_polygon(data = kodiak, aes(x = -longitude, y = latitude)) +
+  labs(x = "Longitude", y = "Latitude", title = "Carte des îles de Kodiak", size= "Nombre total de crabes \n échantillonnés à cet \n emplacement", color="Années d'échantillonnage")+
+  geom_point(data = survey, aes(x=-longitude_halfway_pot, y=latitude_halfway_pot, size=Total_crabs, color=year))
+
+
+## FLEET 
+plot(fleet$price_pound~fleet$crabs_caught) # $ per pound
+plot(fleet$price_pound~fleet$total_weight_caught) # kg of crabs caught
+mod_lin <- lm(price_pound~crabs_caught, data=fleet)
+par(mfrow = c(2, 2))
+plot(mod_lin)
+par(mfrow = c(1,1))
+summary(mod_lin)
+
+
+
+## EGGS
+ggplot(eggs)+
+  aes(x=year, y=estim_eggs_per_adu_f)+
+  geom_col()+
+  labs(x = "Années", y = "Nombre d'oeufs estimés par femelle adulte")+
+  geom_col(fill = "#FF8B8B") 
+
+
+
+## CELSIUS
+modele <- lm(temp ~ date, data = celsius)
+par(mfrow=c(2,2))
+plot(modele)
+summary(modele)
+
+ggplot(celsius) +
+ aes(x = date, y = temp) +
+ geom_line(colour = "#494AFF") +
+ theme_minimal() +
+  geom_smooth(method="lm", color = "red")
+
+
+## Test si température et salinité de l'eau a un effet sur l'effectif de crabe
+
+
+mod_eau <- lm(legal_males~temp_moy+sal_moy, data=survey)
+par(mfrow=c(2,2))
+plot(mod_eau)
+summary(mod_eau)
+
+
+## GROS MODELE !!
+# expression du nb de crabe total en fonction de 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
