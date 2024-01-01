@@ -111,7 +111,7 @@ df_global <- left_join(df_global, eggs, by = "year")
 dstns$year <- paste0("19", dstns$year)
 dstns$year <- as.factor(dstns$year)
 
-dstns_simplified <- data.frame(year = character(),  Juv_f = numeric(),  Adu_f = numeric(),  Adu_M = numeric()) # création du dataframe simplifié
+dstns_simplified <- data.frame(year = character(),  length_moy_juv_F = numeric(),  length_moy_adu_F = numeric(),  length_moy_adu_M = numeric()) # création du dataframe simplifié
 annees <- unique(dstns$year) # Vecteur des années
 
 for (annee in annees) { # Boucle pour chaque année
@@ -136,11 +136,12 @@ for (annee in annees) { # Boucle pour chaque année
   }
   
   # Calcul de la moyenne pour chaque catégorie et ajout de la ligne de l'année en cours au data frame 
-  nouvelle_ligne <- data.frame(year = as.character(annee), Juv_f = totjuvf / countjuvf, Adu_f = totaduf / countaduf, Adu_M = totaduM / countaduM)
+  nouvelle_ligne <- data.frame(year = as.factor(annee), length_moy_juv_F = totjuvf / countjuvf, length_moy_adu_F = totaduf / countaduf, length_moy_adu_M = totaduM / countaduM)
   
   dstns_simplified <- rbind(dstns_simplified, nouvelle_ligne)
 }
 
+df_global <- left_join(df_global, dstns_simplified, by = "year") 
 
 
 
