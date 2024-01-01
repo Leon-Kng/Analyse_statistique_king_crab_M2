@@ -45,7 +45,7 @@ survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir 
 survey$year <- as.factor(survey$year)
 survey$legal_males <- survey$post_recruit + survey$recruit_males
 survey$Total_crabs <- rowSums(survey[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
-df_global <- survey %>%
+df_global <- survey %>%  # on met dans un df global le comptage des crabes par années, plus exploitable pour la suite
   group_by(year) %>%
   summarise(legal_males = sum(legal_males), 
             adu_fem = sum(adu_fem),
@@ -70,7 +70,8 @@ celsius_simplified <- celsius %>%
   group_by(year) %>%
   summarise(temp_moy = mean(temp, na.rm = TRUE)) # calcul de la température moyenne pour chaque année
 
-df_global <- left_join(df_global, celsius_simplified, by = "year") # ajout de la température moyenne pour chaque année à survey
+
+df_global <- left_join(df_global, celsius_simplified, by = "year") # ajout de la température moyenne pour chaque année à df_global
 
 # Salinity
 salinity$year <- paste0("19", salinity$year)
@@ -86,11 +87,8 @@ for (n in c(33,36,38,46)){ # on enlève les données en double
 salinity_simplified <- salinity %>% 
   group_by(year) %>%
   summarise(sal_moy = mean(salinity, na.rm = TRUE)) # calcul de la salinité moyenne pour chaque année
-df_global <- left_join(df_global, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à survey
+df_global <- left_join(df_global, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à df_global
 
-# Dstns
-dstns$year <- paste0("19", dstns$year)
-dstns$year <- as.factor(dstns$year)
 
 # Fleet
 fleet$year <- paste0("19", fleet$year)
@@ -101,6 +99,48 @@ fleet_simplified$year <- fleet_simplified$year+1 # ajout d'une année puis on mo
 fleet_simplified <- rename(fleet_simplified, crabs_caught_last_year = crabs_caught)
 fleet_simplified$year <- as.factor(fleet_simplified$year)
 df_global <- left_join(df_global, fleet_simplified, by = "year") # ajout du nombre de crabes pêchés l'année précédente
+
+# Eggs
+eggs$year <- paste0("19", eggs$year)
+eggs$year <- as.factor(eggs$year)
+df_global <- left_join(df_global, eggs, by = "year")
+
+
+
+# Dstns
+dstns$year <- paste0("19", dstns$year)
+dstns$year <- as.factor(dstns$year)
+
+dstns_simplified <- data.frame(year = character(),  Juv_f = numeric(),  Adu_f = numeric(),  Adu_M = numeric()) # création du dataframe simplifié
+annees <- unique(dstns$year) # Vecteur des années
+
+for (annee in annees) { # Boucle pour chaque année
+  annee_data <- subset(dstns, year == annee) # Filtrer les données pour l'année en cours dans un nouveau df
+  
+  # Initialisation des totaux
+  totjuvf <- 0
+  countjuvf <- 0
+  totaduf <- 0
+  countaduf <- 0
+  totaduM <- 0
+  countaduM <- 0
+  
+  # Boucle pour calculer les moyennes et compter les nb total d'individu
+  for (x in 1:nrow(annee_data)) {
+    totjuvf <- totjuvf + annee_data[x, 3] * annee_data[x, 2] # calcul de la taille X le nb d'individus pour cette taille, on aura juste à diviser cela par le nb total d'individus pour avoir la moyenne
+    countjuvf <- countjuvf + annee_data[x, 3]
+    totaduf <- totaduf + annee_data[x, 4] * annee_data[x, 2]
+    countaduf <- countaduf + annee_data[x, 4]
+    totaduM <- totaduM + annee_data[x, 5] * annee_data[x, 2]
+    countaduM <- countaduM + annee_data[x, 5]
+  }
+  
+  # Calcul de la moyenne pour chaque catégorie et ajout de la ligne de l'année en cours au data frame 
+  nouvelle_ligne <- data.frame(year = as.character(annee), Juv_f = totjuvf / countjuvf, Adu_f = totaduf / countaduf, Adu_M = totaduM / countaduM)
+  
+  dstns_simplified <- rbind(dstns_simplified, nouvelle_ligne)
+}
+
 
 
 
@@ -161,7 +201,7 @@ ggplot(celsius) +
 ## Test si température et salinité de l'eau a un effet sur l'effectif de crabe
 
 
-mod_eau <- lm(Nb_legal_males~temp_moy+sal_moy, data=df_global)
+mod_eau <- lm(legal_males~temp_moy+sal_moy, data=df_global)
 par(mfrow=c(2,2))
 plot(mod_eau)
 summary(mod_eau)
@@ -177,7 +217,12 @@ ggplot(df_global) +
 
 
 # Test de l'effet de m'activité de pêche de l'année précédente
-mod_peche <- lm(Nb_legal_males~crabs_caught_last_year, data = df_global)
+mod_peche_nb_crabs <- lm(legal_males~crabs_caught_last_year, data = df_global)
+par(mfrow=c(2,2))
+plot(mod_peche)
+summary(mod_peche)
+
+mod_peche_eggs <- lm(estim_eggs_per_adu_f~crabs_caught_last_year, data = df_global)
 par(mfrow=c(2,2))
 plot(mod_peche)
 summary(mod_peche)
