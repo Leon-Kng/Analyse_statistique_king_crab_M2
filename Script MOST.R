@@ -233,5 +233,50 @@ ggplot(df_global) +
   geom_point()
 
 
+# Test de la taille moyenne des crabes en fonction de ...
+
+mod_length_X <- lm(length_moy_adu_M~sal_moy, data = df_global)
+par(mfrow=c(2,2))
+plot(mod_length_X)
+summary(mod_length_X)
+
+ggplot(df_global) +
+  aes(x = temp_moy, y = length_moy_adu_M) +
+  geom_point()
+
+
+
+
+# Test de tous les facteurs quantitatifs sur toutes les variabels dépendantes (régressions multiples)
+df_global_short <- df_global[1:11,] # car on a des NA pour 1984 à 1986 pour la salinité et la quantité de crabes pêchés
+
+mod_legal_males <- lm(legal_males ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+summary(mod_legal_males)
+mod_legal_adu_F <- lm(adu_fem ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+summary(mod_legal_adu_F)
+mod_juv_fem <- lm(juv_fem ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+summary(mod_juv_fem)
+mod_pre_1 <- lm(pre_recruit_1 ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+summary(mod_pre_1)
+mod_pre_2 <- lm(pre_recruit_2 ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité très significative !! et temp presque significative
+summary(mod_pre_2)
+mod_pre_3 <- lm(pre_recruit_3 ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité significative !
+summary(mod_pre_3)
+mod_pre_4 <- lm(pre_recruit_4 ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+summary(mod_pre_4)
+mod_tot_crabs <- lm(Total_crabs ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité significative !!
+summary(mod_tot_crabs)
+
+mod_eggs <- lm(estim_eggs_per_adu_f ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+summary(mod_eggs)
+
+mod_len_juv_F <- lm(length_moy_juv_F ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+summary(mod_len_juv_F)
+mod_len_adu_F <- lm(length_moy_adu_F ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité presque significative
+summary(mod_len_adu_F)
+mod_len_adu_M <- lm(length_moy_adu_M ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité presque significative
+summary(mod_len_adu_M)
+
+
 ## GROS MODELE !!
 
