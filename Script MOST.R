@@ -1,5 +1,5 @@
 rm(list=ls())
-setwd("C:/Users/WIN7/Desktop/Projet MOST/Data")
+setwd("C:/Users/Nomade01/Desktop/M2 ECOEVO/MOST/Projet MOST/data")
 
 ### Librairies ###
 library(dplyr) # pour modifier les données
@@ -42,7 +42,7 @@ fullness <-rename(fullness, year= V1, size_mm= V2,fullness0=V3,fullness1_29=V4,f
 
 # Survey
 survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir une année
-survey$year <- as.factor(survey$year)
+survey$year <- as.numeric(survey$year)
 survey$legal_males <- survey$post_recruit + survey$recruit_males
 survey$Total_crabs <- rowSums(survey[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
 df_global <- survey %>%  # on met dans un df global le comptage des crabes par années, plus exploitable pour la suite
@@ -55,6 +55,7 @@ df_global <- survey %>%  # on met dans un df global le comptage des crabes par a
             pre_recruit_3 = sum(pre_recruit_3),
             pre_recruit_4 = sum(pre_recruit_4),
             Total_crabs = sum(Total_crabs)) 
+df_global$juv_male <- rowSums(df_global[,5:8])
 survey$fishing_district <- as.factor(survey$fishing_district)
 
 # Celsius
@@ -63,7 +64,7 @@ celsius$month <- ifelse(nchar(celsius$month) == 1, paste0("0", celsius$month), c
 date_celsius <- unite(celsius, col = "date", month, year, sep = "/")
 celsius$date <- as.Date(paste0("01/", date_celsius$date), format = "%d/%m/%Y")
 
-celsius$year<- as.factor(celsius$year)
+celsius$year<- as.numeric(celsius$year)
 celsius$month<- as.factor(celsius$month)
 
 celsius_simplified <- celsius %>% 
@@ -75,7 +76,7 @@ df_global <- left_join(df_global, celsius_simplified, by = "year") # ajout de la
 
 # Salinity
 salinity$year <- paste0("19", salinity$year)
-salinity$year<- as.factor(salinity$year)
+salinity$year<- as.numeric(salinity$year)
 salinity$month<- as.factor(salinity$month)
 salinity$salinity<- as.numeric(salinity$salinity)
 
@@ -90,6 +91,12 @@ salinity_simplified <- salinity %>%
 df_global <- left_join(df_global, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à df_global
 
 
+# Catch
+catch$year <- paste0("19", catch$year)
+catch$year <- as.numeric(catch$year)
+catch_simplified <- group_by(catch, year) |>
+  summarize(total_count = sum(total_count), total_kg = sum(total_kg))
+
 # Fleet
 fleet$year <- paste0("19", fleet$year)
 fleet$year <- as.numeric(fleet$year)
@@ -97,19 +104,22 @@ fleet$prev_year <- fleet$year - 1
 fleet_simplified <- fleet[,c(1,3)]
 fleet_simplified$year <- fleet_simplified$year+1 # ajout d'une année puis on modifiera le nom de la colonne pour donner le nb de crabes pêchés l'année précédente
 fleet_simplified <- rename(fleet_simplified, crabs_caught_last_year = crabs_caught)
-fleet_simplified$year <- as.factor(fleet_simplified$year)
+fleet_simplified$year <- as.numeric(fleet_simplified$year)
 df_global <- left_join(df_global, fleet_simplified, by = "year") # ajout du nombre de crabes pêchés l'année précédente
+
+diff_catch_fleet <- data.frame(year = fleet$year, delta_count = (fleet$crabs_caught - catch_simplified$total_count), delta_kg = fleet$total_weight_caught - catch_simplified$total_kg) # on compare fleet et catch pour être sûr que l'on a pas d'erreur
+
 
 # Eggs
 eggs$year <- paste0("19", eggs$year)
-eggs$year <- as.factor(eggs$year)
+eggs$year <- as.numeric(eggs$year)
 df_global <- left_join(df_global, eggs, by = "year")
 
 
 
 # Dstns
 dstns$year <- paste0("19", dstns$year)
-dstns$year <- as.factor(dstns$year)
+dstns$year <- as.numeric(dstns$year)
 
 dstns_simplified <- data.frame(year = character(),  length_moy_juv_F = numeric(),  length_moy_adu_F = numeric(),  length_moy_adu_M = numeric()) # création du dataframe simplifié
 annees <- unique(dstns$year) # Vecteur des années
@@ -136,7 +146,7 @@ for (annee in annees) { # Boucle pour chaque année
   }
   
   # Calcul de la moyenne pour chaque catégorie et ajout de la ligne de l'année en cours au data frame 
-  nouvelle_ligne <- data.frame(year = as.factor(annee), length_moy_juv_F = totjuvf / countjuvf, length_moy_adu_F = totaduf / countaduf, length_moy_adu_M = totaduM / countaduM)
+  nouvelle_ligne <- data.frame(year = as.numeric(annee), length_moy_juv_F = totjuvf / countjuvf, length_moy_adu_F = totaduf / countaduf, length_moy_adu_M = totaduM / countaduM)
   
   dstns_simplified <- rbind(dstns_simplified, nouvelle_ligne)
 }
@@ -148,12 +158,12 @@ df_global <- left_join(df_global, dstns_simplified, by = "year")
 ### ANALYSE DES DONNEES ###################
 
 ## Df_global
-df_global_long <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, pre_recruit_1, pre_recruit_2, pre_recruit_3, pre_recruit_4), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
-ggplot(df_global_long) +
-  aes(x = year, y = count, color = crab_category, group = crab_category) +
+df_global_long <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_male), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
+ggplot(df_global_long, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
-  geom_line() +
+  geom_smooth(method = "lm") + 
   theme_bw()
+
 
 ## Etude des données de survey 
 barplot(df_global$Nb_legal_males~df_global$year)
@@ -193,9 +203,9 @@ plot(modele)
 summary(modele)
 
 ggplot(celsius) +
- aes(x = date, y = temp) +
- geom_line(colour = "#494AFF") +
- theme_minimal() +
+  aes(x = date, y = temp) +
+  geom_line(colour = "#494AFF") +
+  theme_minimal() +
   geom_smooth(method="lm", color = "red")
 
 
@@ -246,37 +256,37 @@ ggplot(df_global) +
 
 
 
-
 # Test de tous les facteurs quantitatifs sur toutes les variabels dépendantes (régressions multiples)
-df_global_short <- df_global[1:11,] # car on a des NA pour 1984 à 1986 pour la salinité et la quantité de crabes pêchés
+df_global_short <- df_global[1:11,] # car on a des NA pour 1984 à 1986 pour la salinité et la quantité de crabes pêchés donc si on n'utilise pas ces facteurs alors utiliser df_global plutôt
 
-mod_legal_males <- lm(legal_males ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
-summary(mod_legal_males)
-mod_legal_adu_F <- lm(adu_fem ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+mod_legal_males <- lm(legal_males ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+mod_legal_males <- lm(legal_males ~ year + temp_moy + crabs_caught_last_year, data = df_global_short) # on retire l'un après l'autre chaque facteur 
+mod_legal_males <- lm(legal_males ~ year + crabs_caught_last_year, data = df_global_short)
+mod_legal_males <- lm(legal_males ~ year, data = df_global)
+summary(mod_legal_males) # année très significatives 
+
+mod_legal_adu_F <- lm(adu_fem ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
 summary(mod_legal_adu_F)
-mod_juv_fem <- lm(juv_fem ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+mod_juv_fem <- lm(juv_fem ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
 summary(mod_juv_fem)
-mod_pre_1 <- lm(pre_recruit_1 ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+mod_pre_1 <- lm(pre_recruit_1 ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
 summary(mod_pre_1)
-mod_pre_2 <- lm(pre_recruit_2 ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité très significative !! et temp presque significative
+mod_pre_2 <- lm(pre_recruit_2 ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité très significative !! temp et année presque significative
 summary(mod_pre_2)
-mod_pre_3 <- lm(pre_recruit_3 ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité significative !
+mod_pre_3 <- lm(pre_recruit_3 ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité presque significative
 summary(mod_pre_3)
-mod_pre_4 <- lm(pre_recruit_4 ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+mod_pre_4 <- lm(pre_recruit_4 ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
 summary(mod_pre_4)
-mod_tot_crabs <- lm(Total_crabs ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité significative !!
+mod_tot_crabs <- lm(Total_crabs ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
 summary(mod_tot_crabs)
 
-mod_eggs <- lm(estim_eggs_per_adu_f ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+mod_eggs <- lm(estim_eggs_per_adu_f ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
 summary(mod_eggs)
 
-mod_len_juv_F <- lm(length_moy_juv_F ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
+mod_len_juv_F <- lm(length_moy_juv_F ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
 summary(mod_len_juv_F)
-mod_len_adu_F <- lm(length_moy_adu_F ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité presque significative
+mod_len_adu_F <- lm(length_moy_adu_F ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
 summary(mod_len_adu_F)
-mod_len_adu_M <- lm(length_moy_adu_M ~ temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short) # salinité presque significative
+mod_len_adu_M <- lm(length_moy_adu_M ~ year + temp_moy + sal_moy + crabs_caught_last_year, data = df_global_short)
 summary(mod_len_adu_M)
-
-
-## GROS MODELE !!
 
