@@ -108,6 +108,10 @@ fleet_simplified$year <- as.numeric(fleet_simplified$year)
 df_global <- left_join(df_global, fleet_simplified, by = "year") # ajout du nombre de crabes pêchés l'année précédente
 
 diff_catch_fleet <- data.frame(year = fleet$year, delta_count = (fleet$crabs_caught - catch_simplified$total_count), delta_kg = fleet$total_weight_caught - catch_simplified$total_kg) # on compare fleet et catch pour être sûr que l'on a pas d'erreur
+# on remarque que pour 1974 on a 2 valeurs pour le districts 1 mais différentes, pour corriger cela on peut faire une moyenne des 2
+catch[15,3] <- (catch[15,3] + catch[16,3])/2
+catch[15,4] <- (catch[15,4] + catch[16,4])/2
+catch <- catch[-16,]
 
 
 # Eggs
@@ -165,27 +169,25 @@ ggplot(df_global_long, aes(x = year, y = count, color = crab_category, group = c
   theme_bw()
 
 
-## Etude des données de survey 
-barplot(df_global$Nb_legal_males~df_global$year)
-ggplot(df_global, aes(x=year, y=Nb_legal_males))+
+## SURVEY
+ggplot(df_global, aes(x=year, y=Total_crabs))+
   geom_col()
 
-ggplot() + # sans correction du ratio et avec les années
-  geom_polygon(data = kodiak, aes(x = -longitude, y = latitude)) +
-  labs(x = "Longitude", y = "Latitude", title = "Carte des îles de Kodiak", size= "Nombre total de crabes \n échantillonnés à cet \n emplacement", color="Années d'échantillonnage")+
-  geom_point(data = survey, aes(x=-longitude_halfway_pot, y=latitude_halfway_pot, size=Total_crabs, color=year))
 
+## FLEET & CATCH
+ggplot(fleet, aes(x = crabs_caught, y = price_pound)) + # $ per pound
+  geom_point()
 
-## FLEET 
-plot(fleet$price_pound~fleet$crabs_caught) # $ per pound
-plot(fleet$price_pound~fleet$total_weight_caught) # kg of crabs caught
-mod_lin <- lm(price_pound~crabs_caught, data=fleet)
-par(mfrow = c(2, 2))
-plot(mod_lin)
-par(mfrow = c(1,1))
-summary(mod_lin)
+ggplot(fleet, aes(x = total_weight_caught, y = price_pound)) + # kg of crabs caught
+  geom_point()
 
+ggplot(fleet, aes(x = year, y = crabs_caught)) +
+  geom_col()+
+  labs(title = "fleet")
 
+ggplot(catch_simplified, aes(x = year, y = total_count)) +
+  geom_col() +
+  labs(title = "catch_simplified")
 
 ## EGGS
 ggplot(eggs)+
