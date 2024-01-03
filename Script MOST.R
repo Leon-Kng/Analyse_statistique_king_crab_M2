@@ -221,27 +221,27 @@ summary(mod_eau)
 par(mfrow=c(1,1))
 
 ggplot(df_global) +
-  aes(x = temp_moy, y = Nb_legal_males) +
+  aes(x = temp_moy, y = legal_males) +
   geom_point()
 
 ggplot(df_global) +
-  aes(x = sal_moy, y = Nb_legal_males) +
+  aes(x = sal_moy, y = legal_males) +
   geom_point()
 
 
 # Test de l'effet de m'activité de pêche de l'année précédente
 mod_peche_nb_crabs <- lm(legal_males~crabs_caught_last_year, data = df_global)
 par(mfrow=c(2,2))
-plot(mod_peche)
-summary(mod_peche)
+plot(mod_peche_nb_crabs)
+summary(mod_peche_nb_crabs)
 
 mod_peche_eggs <- lm(estim_eggs_per_adu_f~crabs_caught_last_year, data = df_global)
 par(mfrow=c(2,2))
-plot(mod_peche)
-summary(mod_peche)
+plot(mod_peche_eggs)
+summary(mod_peche_eggs)
 
 ggplot(df_global) +
-  aes(x = crabs_caught_last_year, y = Nb_legal_males) +
+  aes(x = crabs_caught_last_year, y = legal_males) +
   geom_point()
 
 
