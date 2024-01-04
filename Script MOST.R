@@ -139,9 +139,11 @@ df_global <- left_join(df_global, fleet_simplified, by = "year") # ajout du nomb
 
 diff_catch_fleet <- data.frame(year = fleet$year, delta_count = (fleet$crabs_caught - catch_simplified$total_count), delta_kg = fleet$total_weight_caught - catch_simplified$total_kg) # on compare fleet et catch pour être sûr que l'on a pas d'erreur
 # on remarque que pour 1974 on a 2 valeurs pour le districts 1 mais différentes, pour corriger cela on peut faire une moyenne des 2
-catch[15,3] <- (catch[15,3] + catch[16,3])/2
-catch[15,4] <- (catch[15,4] + catch[16,4])/2
-catch <- catch[-16,]
+catch[15,3:4] <- colSums(catch[c(15,16),3:4])/2
+catch[39,3:4] <- colSums(catch[c(39,40),3:4])/2
+catch[63,3:4] <- colSums(catch[c(63,64),3:4])/2
+catch[87,3:4] <- colSums(catch[c(87,88),3:4])/2
+catch <- catch[-c(16,40,64,88),]
 
 
 # Eggs
@@ -214,6 +216,13 @@ ggplot(catch_simplified, aes(x = year, y = total_count)) +
   geom_col() +
   labs(title = "catch_simplified")
 
+ggplot(fleet, aes(x = year, y = total_weight_caught)) +
+  geom_col()+
+  labs(title = "fleet")
+
+ggplot(catch_simplified, aes(x = year, y = total_kg)) +
+  geom_col() +
+  labs(title = "catch_simplified")
 
 ggplot(fleet) + 
   aes(x = year, y = nbr_vessels) +
