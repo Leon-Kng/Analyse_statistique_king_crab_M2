@@ -45,8 +45,8 @@ survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir 
 survey$year <- as.numeric(survey$year)
 survey$legal_males <- survey$post_recruit + survey$recruit_males
 survey$Total_crabs <- rowSums(survey[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
-df_global <- survey %>%  # on met dans un df global le comptage des crabes par années, plus exploitable pour la suite
-  group_by(year) %>%
+df_global <- survey |>  # on met dans un df global le comptage des crabes par années, plus exploitable pour la suite
+  group_by(year) |>
   summarise(legal_males = sum(legal_males), 
             adu_fem = sum(adu_fem),
             juv_fem = sum(juv_fem),
@@ -67,8 +67,8 @@ celsius$date <- as.Date(paste0("01/", date_celsius$date), format = "%d/%m/%Y")
 celsius$year<- as.numeric(celsius$year)
 celsius$month<- as.factor(celsius$month)
 
-celsius_simplified <- celsius %>% 
-  group_by(year) %>%
+celsius_simplified <- celsius |> 
+  group_by(year) |>
   summarise(temp_moy = mean(temp, na.rm = TRUE)) # calcul de la température moyenne pour chaque année
 
 
@@ -85,8 +85,8 @@ for (n in c(33,36,38,46)){ # on enlève les données en double
   salinity<-salinity[-(n+1),]
 }
 
-salinity_simplified <- salinity %>% 
-  group_by(year) %>%
+salinity_simplified <- salinity |> 
+  group_by(year) |>
   summarise(sal_moy = mean(salinity, na.rm = TRUE)) # calcul de la salinité moyenne pour chaque année
 df_global <- left_join(df_global, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à df_global
 
@@ -125,17 +125,26 @@ df_global <- left_join(df_global, eggs, by = "year")
 dstns$year <- paste0("19", dstns$year)
 dstns$year <- as.numeric(dstns$year)
 
-dstns_simplified <- dstns %>%
-  group_by(year) %>%
-  summarize(length_moy_juv = sum(length_mm * count_juv_f) / sum(count_juv_f),
+dstns_simplified <- dstns |>
+  group_by(year) |>
+  summarize(
+    length_moy_juv = sum(length_mm * count_juv_f) / sum(count_juv_f),
     length_moy_adu_F = sum(length_mm * count_adu_f) / sum(count_adu_f),
-    length_moy_adu_M = sum(length_mm * count_males) / sum(count_males))
+    length_moy_adu_M = sum(length_mm * count_males) / sum(count_males)
+    )
 
 df_global <- left_join(df_global, dstns_simplified, by = "year") 
 
 # Fullness
-
-
+fullness_simplified <- fullness |>
+  group_by(year) |>
+  summarize(
+    size_moy_fullness0 = sum(size_mm*fullness0)/sum(fullness0),
+    size_moy_fullness1_29 = sum(size_mm*fullness1_29)/sum(fullness1_29),
+    size_moy_fullness30_59 = sum(size_mm*fullness30_59)/sum(fullness30_59),
+    size_moy_fullness60_89 = sum(size_mm*fullness60_89)/sum(fullness60_89),
+    size_moy_fullness90_100 = sum(size_mm*fullness90_100)/sum(fullness90_100)
+  )
 
 
 ### ANALYSE DES DONNEES ###################
