@@ -143,7 +143,12 @@ fullness_simplified <- fullness |>
     size_moy_fullness1_29 = sum(size_mm*fullness1_29)/sum(fullness1_29),
     size_moy_fullness30_59 = sum(size_mm*fullness30_59)/sum(fullness30_59),
     size_moy_fullness60_89 = sum(size_mm*fullness60_89)/sum(fullness60_89),
-    size_moy_fullness90_100 = sum(size_mm*fullness90_100)/sum(fullness90_100)
+    size_moy_fullness90_100 = sum(size_mm*fullness90_100)/sum(fullness90_100),
+    count_fullness0 = sum(fullness0),
+    count_fullness1_29 = sum(fullness1_29),
+    count_fullness30_59 = sum(fullness30_59),
+    count_fullness60_89 = sum(fullness60_89),
+    count_fullness90_100 = sum(fullness90_100)
   )
 
 
