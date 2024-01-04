@@ -125,37 +125,16 @@ df_global <- left_join(df_global, eggs, by = "year")
 dstns$year <- paste0("19", dstns$year)
 dstns$year <- as.numeric(dstns$year)
 
-dstns_simplified <- data.frame(year = character(),  length_moy_juv_F = numeric(),  length_moy_adu_F = numeric(),  length_moy_adu_M = numeric()) # création du dataframe simplifié
-annees <- unique(dstns$year) # Vecteur des années
-
-for (annee in annees) { # Boucle pour chaque année
-  annee_data <- subset(dstns, year == annee) # Filtrer les données pour l'année en cours dans un nouveau df
-  
-  # Initialisation des totaux
-  totjuvf <- 0
-  countjuvf <- 0
-  totaduf <- 0
-  countaduf <- 0
-  totaduM <- 0
-  countaduM <- 0
-  
-  # Boucle pour calculer les moyennes et compter les nb total d'individu
-  for (x in 1:nrow(annee_data)) {
-    totjuvf <- totjuvf + annee_data[x, 3] * annee_data[x, 2] # calcul de la taille X le nb d'individus pour cette taille, on aura juste à diviser cela par le nb total d'individus pour avoir la moyenne
-    countjuvf <- countjuvf + annee_data[x, 3]
-    totaduf <- totaduf + annee_data[x, 4] * annee_data[x, 2]
-    countaduf <- countaduf + annee_data[x, 4]
-    totaduM <- totaduM + annee_data[x, 5] * annee_data[x, 2]
-    countaduM <- countaduM + annee_data[x, 5]
-  }
-  
-  # Calcul de la moyenne pour chaque catégorie et ajout de la ligne de l'année en cours au data frame 
-  nouvelle_ligne <- data.frame(year = as.numeric(annee), length_moy_juv_F = totjuvf / countjuvf, length_moy_adu_F = totaduf / countaduf, length_moy_adu_M = totaduM / countaduM)
-  
-  dstns_simplified <- rbind(dstns_simplified, nouvelle_ligne)
-}
+dstns_simplified <- dstns %>%
+  group_by(year) %>%
+  summarize(length_moy_juv = sum(length_mm * count_juv_f) / sum(count_juv_f),
+    length_moy_adu_F = sum(length_mm * count_adu_f) / sum(count_adu_f),
+    length_moy_adu_M = sum(length_mm * count_males) / sum(count_males))
 
 df_global <- left_join(df_global, dstns_simplified, by = "year") 
+
+# Fullness
+
 
 
 
