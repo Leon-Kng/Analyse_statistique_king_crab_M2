@@ -46,6 +46,8 @@ survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir 
 survey$year <- as.numeric(survey$year)
 survey$legal_males <- survey$post_recruit + survey$recruit_males
 survey$Total_crabs <- rowSums(survey[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
+
+
 df_global <- survey |>  # on met dans un df global le comptage des crabes par années, plus exploitable pour la suite
   group_by(year) |>
   summarise(legal_males = sum(legal_males), 
@@ -63,7 +65,7 @@ survey$fishing_district <- as.factor(survey$fishing_district)
 celsius$year <- paste0("19", celsius$year) # ajout de 19 devant les nb pour avoir une année
 #celsius$date <-  paste0(celsius$month, "/", celsius$year)
 
-celsius <- celsius |>
+celsius_simplified <- celsius |>
   mutate(
     saison = case_when(
       month %in% c(12, 1, 2) ~ "hiver",
@@ -71,17 +73,21 @@ celsius <- celsius |>
       month %in% c(6, 7, 8) ~ "été",
       month %in% c(9, 10, 11) ~ "automne",
     )
+  ) |>
+  group_by(year, saison) |>
+  summarize(
+    temp_moy = mean(temp)
   )
 
-celsius$year<- as.numeric(celsius$year)
-celsius$month<- as.factor(celsius$month)
+celsius_simplified$year<- as.numeric(celsius_simplified$year)
+celsius_simplified$saison <- as.factor(celsius_simplified$saison)
 
-celsius_simplified <- celsius |> 
+celsius_more_simplified <- celsius |> 
   group_by(year) |>
   summarise(temp_moy = mean(temp, na.rm = TRUE)) # calcul de la température moyenne pour chaque année
 
-
-df_global <- left_join(df_global, celsius_simplified, by = "year") # ajout de la température moyenne pour chaque année à df_global
+celsius_more_simplified$year <- as.numeric(celsius_more_simplified$year)
+df_global <- left_join(df_global, celsius_more_simplified, by = "year") # ajout de la température moyenne pour chaque année à df_global
 
 # Salinity
 salinity$year <- paste0("19", salinity$year)
@@ -94,10 +100,25 @@ for (n in c(33,36,38,46)){ # on enlève les données en double
   salinity<-salinity[-(n+1),]
 }
 
-salinity_simplified <- salinity |> 
+salinity_simplified <- salinity |>
+  mutate(
+    saison = case_when(
+      month %in% c(12, 1, 2) ~ "hiver",
+      month %in% c(3, 4, 5) ~ "printemps",
+      month %in% c(6, 7, 8) ~ "été",
+      month %in% c(9, 10, 11) ~ "automne",
+    )
+  ) |>
+  group_by(year, saison) |>
+  summarize(
+    sal_moy = mean(salinity) # calcul de la salinité moyenne pour chaque mois de chaque année
+  )
+
+
+salinity_more_simplified <- salinity |> 
   group_by(year) |>
   summarise(sal_moy = mean(salinity, na.rm = TRUE)) # calcul de la salinité moyenne pour chaque année
-df_global <- left_join(df_global, salinity_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à df_global
+df_global <- left_join(df_global, salinity_more_simplified, by = "year") # ajout de la salinité moyenne pour chaque année à df_global
 
 
 # Catch
@@ -178,10 +199,12 @@ ggplot(df_global, aes(x=year, y=Total_crabs))+
 
 ## FLEET & CATCH
 ggplot(fleet, aes(x = crabs_caught, y = price_pound)) + # $ per pound
-  geom_point()
+  geom_point() +
+  geom_smooth()
 
 ggplot(fleet, aes(x = total_weight_caught, y = price_pound)) + # kg of crabs caught
-  geom_point()
+  geom_point() +
+  geom_smooth()
 
 ggplot(fleet, aes(x = year, y = crabs_caught)) +
   geom_col()+
@@ -190,6 +213,33 @@ ggplot(fleet, aes(x = year, y = crabs_caught)) +
 ggplot(catch_simplified, aes(x = year, y = total_count)) +
   geom_col() +
   labs(title = "catch_simplified")
+
+
+ggplot(fleet) + 
+  aes(x = year, y = nbr_vessels) +
+  geom_point(
+    shape = "circle",
+    size = 2.55,
+    colour = "#112446"
+  ) +
+  geom_smooth(method = "lm") + 
+  theme_minimal()
+mod_vessels <- lm(nbr_vessels~year, data = fleet)
+summary(mod_vessels) 
+
+
+ggplot(fleet) + # étude de l'effort de pêche
+  aes(x = year, y = total_pot_lifts) +
+  geom_point(
+    shape = "circle",
+    size = 2.55,
+    colour = "#112446"
+  ) +
+  geom_smooth(method = "lm") + 
+  theme_minimal() 
+mod_lifts <- lm(total_pot_lifts~year, data = fleet)
+summary(mod_lifts)
+
 
 ## EGGS
 ggplot(eggs)+
@@ -201,13 +251,19 @@ ggplot(eggs)+
 
 
 ## CELSIUS
-modele <- lm(temp ~ date, data = celsius)
+ggplot(celsius_simplified, aes(x= year, y = temp_moy, color = saison)) +
+  geom_point(aes(color = saison)) +
+  geom_line() +
+  geom_smooth(method = "lm", se = F)
+
+modele <- lm(temp_moy ~ year, data = celsius_more_simplified)
 par(mfrow=c(2,2))
 plot(modele)
 summary(modele)
 
-ggplot(celsius) +
-  aes(x = date, y = temp) +
+ggplot(celsius_more_simplified) +
+  aes(x = year, y = temp_moy) +
+  geom_point(colour = "#494AFF") +
   geom_line(colour = "#494AFF") +
   theme_minimal() +
   geom_smooth(method="lm", color = "red")
