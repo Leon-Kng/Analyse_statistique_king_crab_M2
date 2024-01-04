@@ -1,3 +1,4 @@
+### INITIALISATION ########
 rm(list=ls())
 setwd("C:/Users/Nomade01/Desktop/M2 ECOEVO/MOST/Projet MOST/data")
 
@@ -60,9 +61,17 @@ survey$fishing_district <- as.factor(survey$fishing_district)
 
 # Celsius
 celsius$year <- paste0("19", celsius$year) # ajout de 19 devant les nb pour avoir une année
-celsius$month <- ifelse(nchar(celsius$month) == 1, paste0("0", celsius$month), celsius$month) # ajout de 0 devant les mois à 1 chiffre
-date_celsius <- unite(celsius, col = "date", month, year, sep = "/")
-celsius$date <- as.Date(paste0("01/", date_celsius$date), format = "%d/%m/%Y")
+#celsius$date <-  paste0(celsius$month, "/", celsius$year)
+
+celsius <- celsius |>
+  mutate(
+    saison = case_when(
+      month %in% c(12, 1, 2) ~ "hiver",
+      month %in% c(3, 4, 5) ~ "printemps",
+      month %in% c(6, 7, 8) ~ "été",
+      month %in% c(9, 10, 11) ~ "automne",
+    )
+  )
 
 celsius$year<- as.numeric(celsius$year)
 celsius$month<- as.factor(celsius$month)
