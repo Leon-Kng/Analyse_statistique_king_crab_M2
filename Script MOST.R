@@ -127,7 +127,7 @@ catch$year <- as.numeric(catch$year)
 catch_simplified <- group_by(catch, year) |>
   summarize(total_count = sum(total_count), total_kg = sum(total_kg))
 
-# Fleet
+# Fleet 
 fleet$year <- paste0("19", fleet$year)
 fleet$year <- as.numeric(fleet$year)
 fleet$prev_year <- fleet$year - 1
@@ -222,7 +222,7 @@ ggplot(fleet) +
     size = 2.55,
     colour = "#112446"
   ) +
-  geom_smooth(method = "lm") + 
+  geom_smooth(method = "lm") +
   theme_minimal()
 mod_vessels <- lm(nbr_vessels~year, data = fleet)
 summary(mod_vessels) 
