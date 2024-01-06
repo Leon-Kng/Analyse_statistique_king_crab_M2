@@ -41,22 +41,36 @@ fullness <-rename(fullness, year= V1, size_mm= V2,fullness0=V3,fullness1_29=V4,f
 survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir une année
 survey$year <- as.numeric(survey$year)
 survey$fishing_district <- as.factor(survey$fishing_district)
-survey$legal_males <- survey$post_recruit + survey$recruit_males
-survey$Total_crabs <- rowSums(survey[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
-survey <- survey |> # on additionne tous les pre-recruit pour obtenir les uvéniles mâles
-  mutate(juv_males = pre_recruit_1 + pre_recruit_2 + pre_recruit_3 + pre_recruit_4)
+survey <- survey |> # on divise les données par le nb de casiers utilisés afin de tenir compte de l'effort d'échantillonnage
+  mutate(year = year,
+         fishing_district = fishing_district,
+         Station_ID = Station_ID,
+         pots_fished = pots_fished,
+         latitude_halfway_pot = latitude_halfway_pot,
+         longitude_halfway_pot = longitude_halfway_pot,
+         pre_recruit_4_per_pot = pre_recruit_4/pots_fished,
+         pre_recruit_3_per_pot = pre_recruit_3/pots_fished,
+         pre_recruit_2_per_pot = pre_recruit_2/pots_fished,
+         pre_recruit_1_per_pot = pre_recruit_1/pots_fished,
+         recruit_males_per_pot = recruit_males/pots_fished,
+         post_recruit_per_pot = post_recruit/pots_fished,
+         juv_fem_per_pot = juv_fem/pots_fished,
+         adu_fem_per_pot = adu_fem/pots_fished) |>  
+  mutate(legal_males_per_pot = post_recruit_per_pot + recruit_males_per_pot,
+         juv_males_per_pot = pre_recruit_1_per_pot + pre_recruit_2_per_pot + pre_recruit_3_per_pot + pre_recruit_4_per_pot,
+         total_crabs_per_pot = juv_fem_per_pot + juv_males_per_pot + legal_males_per_pot + adu_fem_per_pot)
 
-survey_simplified <- survey |>  # on met dans un df global le comptage des crabes par années, plus exploitable pour la suite
+survey_simplified <- survey |> 
   group_by(year) |>
-  summarise(legal_males = sum(legal_males), 
-            adu_fem = sum(adu_fem),
-            juv_fem = sum(juv_fem),
-            juv_males = sum(juv_males),
-            pre_recruit_1 = sum(pre_recruit_1),
-            pre_recruit_2 = sum(pre_recruit_2),
-            pre_recruit_3 = sum(pre_recruit_3),
-            pre_recruit_4 = sum(pre_recruit_4),
-            Total_crabs = sum(Total_crabs)) 
+  summarise(legal_males_per_pot = mean(legal_males_per_pot), 
+            adu_fem_per_pot = mean(adu_fem_per_pot),
+            juv_fem_per_pot = mean(juv_fem_per_pot),
+            juv_males_per_pot = mean(juv_males_per_pot),
+            pre_recruit_1_per_pot = mean(pre_recruit_1_per_pot),
+            pre_recruit_2_per_pot = mean(pre_recruit_2_per_pot),
+            pre_recruit_3_per_pot = mean(pre_recruit_3_per_pot),
+            pre_recruit_4_per_pot = mean(pre_recruit_4_per_pot),
+            total_crabs_per_pot = mean(total_crabs_per_pot)) 
 
 
 # Celsius
@@ -134,6 +148,11 @@ fleet_simplified$year <- fleet_simplified$year+1 # ajout d'une année puis on mo
 fleet_simplified <- rename(fleet_simplified, crabs_caught_last_year = crabs_caught)
 fleet_simplified$year <- as.numeric(fleet_simplified$year)
 
+
+# Catch
+catch$year <- paste0("19", catch$year)
+catch$year <- as.numeric(catch$year)
+
 diff_catch_fleet <- data.frame(year = fleet$year, delta_count = (fleet$crabs_caught - catch_simplified$total_count), delta_kg = fleet$total_weight_caught - catch_simplified$total_kg) # on compare fleet et catch pour être sûr que l'on a pas d'erreur
 # on remarque que pour 1974 on a 2 valeurs pour le districts 1 mais différentes, pour corriger cela on peut faire une moyenne des 2
 catch[15,3:4] <- colSums(catch[c(15,16),3:4])/2
@@ -142,6 +161,8 @@ catch[63,3:4] <- colSums(catch[c(63,64),3:4])/2
 catch[87,3:4] <- colSums(catch[c(87,88),3:4])/2
 catch <- catch[-c(16,40,64,88),]
 
+catch_simplified <- group_by(catch, year) |>
+  summarize(total_count = sum(total_count), total_kg = sum(total_kg))
 
 # Eggs
 eggs$year <- paste0("19", eggs$year)
@@ -184,7 +205,7 @@ fullness_simplified <- fullness |>
 ### ANALYSE DES DONNEES ###################
 
 ## SURVEY SIMPLIFIED
-survey_simplified_long <- pivot_longer(survey_simplified, cols = c(legal_males, adu_fem, juv_fem, juv_males), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
+survey_simplified_long <- pivot_longer(survey_simplified, cols = c(legal_males_per_pot, adu_fem_per_pot, juv_fem_per_pot, juv_males_per_pot), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
 ggplot(survey_simplified_long, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
   geom_smooth(method = "lm", se =F) + 
@@ -192,7 +213,7 @@ ggplot(survey_simplified_long, aes(x = year, y = count, color = crab_category, g
 
 
 ## SURVEY
-ggplot(survey_simplified, aes(x=year, y=Total_crabs))+
+ggplot(survey_simplified, aes(x=year, y=total_crabs))+
   geom_col()
 
 
