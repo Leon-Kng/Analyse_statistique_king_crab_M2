@@ -86,7 +86,6 @@ survey_simplified <- survey |>
 
 # Celsius
 celsius$year <- paste0("19", celsius$year) # ajout de 19 devant les nb pour avoir une année
-#celsius$date <-  paste0(celsius$month, "/", celsius$year)
 
 celsius_simplified <- celsius |>
   mutate(
@@ -94,18 +93,20 @@ celsius_simplified <- celsius |>
       month %in% c(12, 1, 2) ~ "hiver",
       month %in% c(3, 4, 5) ~ "printemps",
       month %in% c(6, 7, 8) ~ "été",
-      month %in% c(9, 10, 11) ~ "automne",
-    )
-  ) |>
+      month %in% c(9, 10, 11) ~ "automne",)) |>
   group_by(year, saison) |>
-  summarize(
-    temp_moy = mean(temp)
-  )
+  summarize(temp_moy = mean(temp)) |> 
+  pivot_wider(names_from = saison, values_from = temp_moy) |>
+  rename(temp_moy_hiver = hiver,
+         temp_moy_automne = automne,
+         temp_moy_été = été,
+         temp_moy_printemps = printemps)
+  
 
 celsius_simplified$year<- as.numeric(celsius_simplified$year)
-celsius_simplified$saison <- as.factor(celsius_simplified$saison)
+df_global <- left_join(survey_simplified, celsius_simplified, by = "year")
 
-celsius_more_simplified <- celsius |> 
+celsius_more_simplified <- celsius |> # pas sûr de l'utiliser
   group_by(year) |>
   summarise(temp_moy = mean(temp, na.rm = TRUE)) # calcul de la température moyenne pour chaque année
 
@@ -118,25 +119,22 @@ salinity$year<- as.numeric(salinity$year)
 salinity$month<- as.factor(salinity$month)
 salinity$salinity<- as.numeric(salinity$salinity)
 
-for (n in c(33,36,38,46)){ # on enlève les données en double 
-  salinity[n,3]<-(salinity[n,3]+salinity[n+1,3])/2 # et on les remplace par une moyenne 
-  salinity<-salinity[-(n+1),]
-}
-
 salinity_simplified <- salinity |>
   mutate(
     saison = case_when(
       month %in% c(12, 1, 2) ~ "hiver",
       month %in% c(3, 4, 5) ~ "printemps",
       month %in% c(6, 7, 8) ~ "été",
-      month %in% c(9, 10, 11) ~ "automne",
-    )
-  ) |>
+      month %in% c(9, 10, 11) ~ "automne",)) |>
   group_by(year, saison) |>
-  summarize(
-    sal_moy = mean(salinity) # calcul de la salinité moyenne pour chaque mois de chaque année
-  )
+  summarize(sal_moy = mean(salinity)) |> 
+  pivot_wider(names_from = saison, values_from = sal_moy) |>
+  rename(sal_moy_hiver = hiver,
+         sal_moy_automne = automne,
+         sal_moy_été = été,
+         sal_moy_printemps = printemps)
 
+df_global <- left_join(df_global, salinity_simplified, by = "year")
 
 salinity_more_simplified <- salinity |> 
   group_by(year) |>
@@ -147,8 +145,11 @@ salinity_more_simplified <- salinity |>
 # Catch
 catch$year <- paste0("19", catch$year)
 catch$year <- as.numeric(catch$year)
-catch_simplified <- group_by(catch, year) |>
-  summarize(total_count = sum(total_count), total_kg = sum(total_kg))
+catch_simplified <- catch |> 
+  group_by(year) |>
+  summarize(total_count = sum(total_count), 
+            total_kg = sum(total_kg))
+
 
 # Fleet 
 fleet$year <- paste0("19", fleet$year)
@@ -159,13 +160,14 @@ fleet_simplified$year <- fleet_simplified$year+1 # ajout d'une année puis on mo
 fleet_simplified <- rename(fleet_simplified, crabs_caught_last_year = crabs_caught)
 fleet_simplified$year <- as.numeric(fleet_simplified$year)
 
+df_global <- left_join(df_global, fleet_simplified, by = "year")
 
 # Catch
 catch$year <- paste0("19", catch$year)
 catch$year <- as.numeric(catch$year)
 
 diff_catch_fleet <- data.frame(year = fleet$year, delta_count = (fleet$crabs_caught - catch_simplified$total_count), delta_kg = fleet$total_weight_caught - catch_simplified$total_kg) # on compare fleet et catch pour être sûr que l'on a pas d'erreur
-# on remarque que pour 1974 on a 2 valeurs pour le districts 1 mais différentes, pour corriger cela on peut faire une moyenne des 2
+# on remarque que pour 1974 on a 2 valeurs pour le districts 1 mais différentes, pour corriger cela on peut faire une moyenne des 2 mais cela reste imparfait
 catch[15,3:4] <- colSums(catch[c(15,16),3:4])/2
 catch[39,3:4] <- colSums(catch[c(39,40),3:4])/2
 catch[63,3:4] <- colSums(catch[c(63,64),3:4])/2
@@ -178,7 +180,7 @@ catch_simplified <- group_by(catch, year) |>
 # Eggs
 eggs$year <- paste0("19", eggs$year)
 eggs$year <- as.numeric(eggs$year)
-survey_eggs <- left_join(survey_simplified, eggs, by = "year")
+df_global <- left_join(df_global, eggs, by = "year")
 
 
 
@@ -194,9 +196,11 @@ dstns_simplified <- dstns |>
     length_moy_adu_M = sum(length_mm * count_males) / sum(count_males)
     )
 
-
+df_global <- left_join(df_global, dstns_simplified, by = "year")
 
 # Fullness
+fullness$year <- paste0("19", fullness$year)
+fullness$year <- as.numeric(fullness$year)
 fullness_simplified <- fullness |>
   group_by(year) |>
   summarize(
@@ -212,13 +216,16 @@ fullness_simplified <- fullness |>
     count_fullness90_100 = sum(fullness90_100)
   )
 
+df_global <- left_join(df_global, fullness_simplified, by = "year")
+
 
 ### ANALYSE DES DONNEES ###################
 
 ## SURVEY SIMPLIFIED
 ggplot(survey_simplified, aes(x = legal_males, y = legal_males_pp))+
   geom_point()+
-  geom_smooth(method = "lm", color = "red")
+  geom_smooth(method = "lm", color = "red")+
+  labs(x = "Nombre de mâles pouvant être légalement pêchés", y = "Nombre de mâles pouvant être légalement pêchés moyen par piège")
 test <- lm(legal_males~legal_males_pp, data = survey_simplified)
 summary(test)
 
@@ -359,8 +366,4 @@ mod_peche_eggs <- lm(estim_eggs_per_adu_f~crabs_caught_last_year, data = survey_
 par(mfrow=c(2,2))
 plot(mod_peche_eggs)
 summary(mod_peche_eggs)
-
-
-
-
 
