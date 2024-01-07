@@ -163,8 +163,6 @@ fleet_simplified$year <- as.numeric(fleet_simplified$year)
 df_global <- left_join(df_global, fleet_simplified, by = "year")
 
 # Catch
-catch$year <- paste0("19", catch$year)
-catch$year <- as.numeric(catch$year)
 
 diff_catch_fleet <- data.frame(year = fleet$year, delta_count = (fleet$crabs_caught - catch_simplified$total_count), delta_kg = fleet$total_weight_caught - catch_simplified$total_kg) # on compare fleet et catch pour être sûr que l'on a pas d'erreur
 # on remarque que pour 1974 on a 2 valeurs pour le districts 1 mais différentes, pour corriger cela on peut faire une moyenne des 2 mais cela reste imparfait
@@ -221,64 +219,47 @@ df_global <- left_join(df_global, fullness_simplified, by = "year")
 
 ### ANALYSE DES DONNEES ###################
 
-## SURVEY SIMPLIFIED
-ggplot(survey_simplified, aes(x = legal_males, y = legal_males_pp))+
+## SURVEY
+ggplot(df_global, aes(x = legal_males, y = legal_males_pp))+ # on regarde si on a une différence entre le nb de crabes corrigés et le nb de crabes moyen par piège
   geom_point()+
   geom_smooth(method = "lm", color = "red")+
   labs(x = "Nombre de mâles pouvant être légalement pêchés", y = "Nombre de mâles pouvant être légalement pêchés moyen par piège")
-test <- lm(legal_males~legal_males_pp, data = survey_simplified)
-summary(test)
+test <- lm(legal_males~legal_males_pp, data = df_global)
+summary(test) # on remarque que c'est très fortement correlé donc pas de grosse différence si on choisit l'un ou l'autre
 
-survey_simplified_long <- pivot_longer(survey_simplified, cols = c(legal_males, adu_fem, juv_fem, juv_males), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
-ggplot(survey_simplified_long, aes(x = year, y = count, color = crab_category, group = crab_category)) +
+df_global_long1 <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
+ggplot(df_global_long1, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
   geom_smooth(method = "lm", se =F) + 
+  labs(title = "Dynamique du nombre de crabes de chaque classe d'âge", x = "Année", y = "Nombre de crabes corrigé par l'effort d'échantillonnage", color = "Classe d'âge") +
+  theme(axis.title.y = element_text(size = 8)) +
   theme_bw()
 
-ggplot(survey_simplified, aes(x= year, y = adu_fem)) +
-  geom_point()+
-  geom_smooth(method = "lm")
+df_global_long2 <- pivot_longer(df_global, cols = c(legal_males_pp, adu_fem_pp, juv_fem_pp, juv_males_pp), names_to = "crab_category", values_to = "count")
+ggplot(df_global_long2, aes(x = year, y = count, color = crab_category, group = crab_category)) +
+  geom_point() +
+  geom_smooth(method = "lm", se =F) + 
+  labs(title = "Dynamique du nombre moyen de crabes de chaque classe d'âge par piège", x = "Année", y = "Nombre de crabes moyen par piège", color = "Classe d'âge") +
+  theme(axis.title.y = element_text(size = 8)) +
+theme_bw()
 
-ggplot(survey_simplified)+
-  geom_point(aes(x = year, y = legal_males_per_pot), color = 1) +
-  geom_point(aes(x = year, y = adu_fem_per_pot), color = 2) +
-  geom_point(aes(x = year, y = juv_fem_per_pot), color = 3) +
-  geom_point(aes(x = year, y = juv_males_per_pot), color = 4) +
-  geom_smooth(aes(x = year, y = juv_males_per_pot), method = "lm", color = 4, se = F)
-  
-
-## SURVEY
-ggplot(survey_simplified, aes(x=year, y=total_crabs))+
+ggplot(df_global, aes(x = year, y = total_crabs))+
+  labs(title = "Nombre de crabes corrigé par l'effort d'échantillonnage par année", x = "Années", y = "Nombre de crabes corrigé par l'effort d'échantillonnage")+
+  theme(axis.title.y = element_text(size = 8)) +
   geom_col()
 
 
 ## DSTNS 
-survey_dstns <- left_join(survey_simplified, dstns_simplified, by = "year") 
+
 
 ## FLEET & CATCH
-ggplot(fleet, aes(x = crabs_caught, y = price_pound)) + # $ per pound
+ggplot(fleet, aes(x = crabs_caught, y = price_pound)) + # pour étudier l'évolution du prix (en $ per pound) en fonction du nb de crabes pêchés
   geom_point() +
   geom_smooth()
 
-ggplot(fleet, aes(x = total_weight_caught, y = price_pound)) + # kg of crabs caught
+ggplot(fleet, aes(x = total_weight_caught, y = price_pound)) + # total_weight_caught en kg of crabs caught
   geom_point() +
   geom_smooth()
-
-ggplot(fleet, aes(x = year, y = crabs_caught)) +
-  geom_col()+
-  labs(title = "fleet")
-
-ggplot(catch_simplified, aes(x = year, y = total_count)) +
-  geom_col() +
-  labs(title = "catch_simplified")
-
-ggplot(fleet, aes(x = year, y = total_weight_caught)) +
-  geom_col()+
-  labs(title = "fleet")
-
-ggplot(catch_simplified, aes(x = year, y = total_kg)) +
-  geom_col() +
-  labs(title = "catch_simplified")
 
 ggplot(fleet) + 
   aes(x = year, y = nbr_vessels) +
@@ -299,24 +280,40 @@ summary(mod_lifts)
 
 
 ## EGGS
-ggplot(eggs)+
+ggplot(eggs) +
   aes(x=year, y=estim_eggs_per_adu_f) +
   labs(x = "Années", y = "Nombre d'oeufs estimés par femelle adulte") +
-  geom_line() +
-  geom_point(fill = "#FF8B8B") 
+  geom_point(color = "#FF8B8B") +
+  geom_smooth(color = "#FF8B8B", se = F) +
+  geom_smooth(method = "lm", color = "deepskyblue", se = F)
 
 
 
 ## CELSIUS
-ggplot(celsius_simplified, aes(x= year, y = temp_moy, color = saison)) +
-  geom_point(aes(color = saison)) +
-  geom_line() +
-  geom_smooth(method = "lm", se = F)
+printemps <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_printemps)) + geom_point(color = "forestgreen") + geom_smooth(method = "lm", color = "forestgreen")
+été <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_été)) + geom_point(color = "darkorchid") + geom_smooth(method = "lm", color = "darkorchid")
+automne <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_automne)) + geom_point(color = "darkorange") + geom_smooth(method = "lm", color = "darkorange")
+hiver <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_hiver)) + geom_point(color = "darkslategray3") + geom_smooth(method = "lm", color = "darkslategray3")
+grid.arrange(printemps, été, automne, hiver, nrow = 2, ncol = 2)
 
-modele <- lm(temp_moy ~ year, data = celsius_more_simplified)
+mod_printemps <- lm(temp_moy_printemps ~ year, data = celsius_simplified) # température moyenne pour chaque saison
+mod_été <- lm(temp_moy_été ~ year, data = celsius_simplified)
+mod_automne <- lm(temp_moy_automne ~ year, data = celsius_simplified)
+mod_hiver <- lm(temp_moy_hiver ~ year, data = celsius_simplified)
 par(mfrow=c(2,2))
-plot(modele)
-summary(modele)
+plot(mod_printemps)
+plot(mod_été)
+plot(mod_automne)
+plot(mod_hiver)
+summary(mod_printemps) # **
+summary(mod_été) # **
+summary(mod_automne) # pas significatif
+summary(mod_hiver) # pas significatif
+
+mod_temp_year <- lm(temp_moy ~ year, data = celsius_more_simplified) # température moyenne par année
+par(mfrow=c(2,2))
+plot(mod_temp_year)
+summary(mod_temp_year)
 
 ggplot(celsius_more_simplified) +
   aes(x = year, y = temp_moy) +
@@ -325,45 +322,8 @@ ggplot(celsius_more_simplified) +
   geom_smooth(method="lm", color = "red")
 
 
-## Test si température et salinité de l'eau a un effet sur l'effectif de crabe
-survey_temp_sal <- left_join(survey_simplified, celsius_more_simplified, by = "year") # ajout de la température moyenne pour chaque année
-survey_temp_sal <- left_join(survey_temp_sal, salinity_more_simplified, by = "year") # ajout de la salinité moyenne pour chaque année
-survey_temp_sal <- survey_temp_sal[1:11,] # car on a des NA pour 1984 à 1986 pour la salinité et la quantité de crabes pêchés
 
+## Régressions linéaire multiples
+df_global_short <- df_global[1:11,] # car on a des NA pour 1984 à 1986 pour la salinité et la quantité de crabes pêchés
 
-mod_eau <- lm(legal_males~temp_moy+sal_moy, data=survey_temp_sal)
-par(mfrow=c(2,2))
-plot(mod_eau)
-summary(mod_eau)
-par(mfrow=c(1,1))
-
-ggplot(survey_temp_sal) +
-  aes(x = temp_moy, y = legal_males) +
-  geom_point()
-
-ggplot(survey_temp_sal) +
-  aes(x = sal_moy, y = legal_males) +
-  geom_point()
-
-
-# Test de l'effet de m'activité de pêche de l'année précédente
-survey_fleet <- left_join(survey_simplified, fleet_simplified, by = "year") # ajout du nombre de crabes pêchés l'année précédente
-survey_fleet <- left_join(survey_fleet, eggs, by = "year") # ajout du nombre d'oeufs par femelle moyen 
-
-ggplot(survey_fleet) +
-  aes(x = crabs_caught_last_year, y = legal_males) +
-  geom_point() +
-  geom_smooth(method = "lm")
-
-survey_fleet_short <- survey_fleet[1:11,]
-mod_peche_nb_crabs <- lm(legal_males~crabs_caught_last_year, data = survey_fleet_short)
-par(mfrow=c(2,2))
-plot(mod_peche_nb_crabs)
-summary(mod_peche_nb_crabs)
-
-
-mod_peche_eggs <- lm(estim_eggs_per_adu_f~crabs_caught_last_year, data = survey_fleet)
-par(mfrow=c(2,2))
-plot(mod_peche_eggs)
-summary(mod_peche_eggs)
 
