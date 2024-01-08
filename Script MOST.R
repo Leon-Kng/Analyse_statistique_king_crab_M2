@@ -87,13 +87,18 @@ survey_simplified <- survey |>
 # Celsius
 celsius$year <- paste0("19", celsius$year) # ajout de 19 devant les nb pour avoir une année
 
-celsius_simplified <- celsius |>
+celsius <- celsius |>
   mutate(
     saison = case_when(
       month %in% c(12, 1, 2) ~ "hiver",
       month %in% c(3, 4, 5) ~ "printemps",
       month %in% c(6, 7, 8) ~ "été",
       month %in% c(9, 10, 11) ~ "automne",)) |>
+  select(-month)
+celsius$saison <- as.factor(celsius$saison)
+celsius$year <- as.numeric(celsius$year)
+
+celsius_simplified <- celsius |> 
   group_by(year, saison) |>
   summarize(temp_moy = mean(temp)) |> 
   pivot_wider(names_from = saison, values_from = temp_moy) |>
@@ -267,25 +272,18 @@ ggplot(df_global, aes(x = year, y = total_crabs))+
 
 
 ## CELSIUS
-plot_temp_printemps <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_printemps)) + geom_point(color = "forestgreen") + geom_smooth(method = "lm", color = "forestgreen")
-plot_temp_été <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_été)) + geom_point(color = "darkorchid") + geom_smooth(method = "lm", color = "darkorchid")
-plot_temp_automne <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_automne)) + geom_point(color = "darkorange") + geom_smooth(method = "lm", color = "darkorange")
-plot_temp_hiver <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_hiver)) + geom_point(color = "darkslategray3") + geom_smooth(method = "lm", color = "darkslategray3")
-grid.arrange(plot_temp_printemps, plot_temp_été, plot_temp_automne, plot_temp_hiver, nrow = 2, ncol = 2)
 
-mod_temp_printemps <- lm(temp_moy_printemps ~ year, data = celsius_simplified) # température moyenne pour chaque saison
-mod_temp_été <- lm(temp_moy_été ~ year, data = celsius_simplified)
-mod_temp_automne <- lm(temp_moy_automne ~ year, data = celsius_simplified)
-mod__temp_hiver <- lm(temp_moy_hiver ~ year, data = celsius_simplified)
+ggplot(celsius, aes(x = year, y = temp, color = saison))+
+  geom_point()+
+  geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la température sur les variables de survey
+
+ancova_temp <- lm(temp ~ year*saison, data = celsius)
+shapiro.test(ancova_temp$residuals)
 par(mfrow=c(2,2))
-plot(mod_temp_printemps)
-plot(mod_temp_été)
-plot(mod_temp_automne)
-plot(mod_temp_hiver)
-summary(mod_temp_printemps) # **
-summary(mod_temp_été) # **
-summary(mod_temp_automne) # pas significatif
-summary(mod_temp_hiver) # pas significatif
+plot(ancova_temp)
+summary(ancova_temp)
+anova(ancova_temp) # *** year et saison
+
 
 mod_temp_year <- lm(temp_moy ~ year, data = celsius_more_simplified) # température moyenne par année
 par(mfrow=c(2,2))
@@ -300,29 +298,25 @@ ggplot(celsius_more_simplified) +
 
 
 ## SALINITE
-ggplot(salinity_simplified_long, aes(x = year, y = sal_moy, color = saison))+
+ggplot(salinity, aes(x = year, y = salinity, color = saison))+
   geom_point()+
-  geom_smooth(method="lm", se=F)
+  geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la salinté sur les variables de survey
 
-plot_sal_printemps <- ggplot(salinity_simplified, aes(x = year, y = sal_moy_printemps)) + geom_point(color = "forestgreen") + geom_smooth(method = "lm", color = "forestgreen")
-plot_sal_été <- ggplot(salinity_simplified, aes(x = year, y = sal_moy_été)) + geom_point(color = "darkorchid") + geom_smooth(method = "lm", color = "darkorchid")
-plot_sal_automne <- ggplot(salinity_simplified, aes(x = year, y = sal_moy_automne)) + geom_point(color = "darkorange") + geom_smooth(method = "lm", color = "darkorange")
-plot_sal_hiver <- ggplot(salinity_simplified, aes(x = year, y = sal_moy_hiver)) + geom_point(color = "darkslategray3") + geom_smooth(method = "lm", color = "darkslategray3")
-grid.arrange(plot_sal_printemps, plot_sal_été, plot_sal_automne, plot_sal_hiver, nrow = 2, ncol = 2)
-
-mod_sal_printemps <- lm(sal_moy_printemps ~ year, data = salinity_simplified) # température moyenne pour chaque saison
-mod_sal_été <- lm(sal_moy_été ~ year, data = salinity_simplified)
-mod_sal_automne <- lm(sal_moy_automne ~ year, data = salinity_simplified)
-mod_sal_hiver <- lm(sal_moy_hiver ~ year, data = salinity_simplified)
+ancova_salinity <- lm(salinity ~ year*saison, data = salinity)
+shapiro.test(ancova_salinity$residuals)
 par(mfrow=c(2,2))
-plot(mod_sal_printemps)
-plot(mod_sal_été)
-plot(mod_sal_automne)
-plot(mod_sal_hiver)
-summary(mod_sal_printemps) # *
-summary(mod_sal_été) # pas significatif
-summary(mod_sal_automne) # pas significatif
-summary(mod_sal_hiver) # pas significatif
+plot(ancova_salinity) # résidus non normaux donc on va normaliser la salinité pour chaque saison
+
+salinity_normalized <- salinity %>%
+  group_by(saison) %>%
+  mutate(salinity_normalized = bestNormalize(salinity, out_of_sample = FALSE)$x.t)
+
+ancova_salinity <- lm(salinity_normalized ~ year*saison, data = salinity_normalized)
+shapiro.test(ancova_salinity$residuals)
+par(mfrow=c(2,2))
+plot(ancova_salinity)
+summary(ancova_salinity)
+anova(ancova_salinity) # year ** et salinité pas significatif
 
 ## FLEET 
 ggplot(fleet, aes(x = crabs_caught, y = price_pound)) + # pour étudier l'évolution du prix (en $ per pound) en fonction du nb de crabes pêchés
