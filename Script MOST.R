@@ -229,18 +229,18 @@ ggplot(df_global, aes(x = legal_males, y = legal_males_pp))+ # on regarde si on 
 test <- lm(legal_males~legal_males_pp, data = df_global)
 summary(test) # on remarque que c'est très fortement correlé donc pas de grosse différence si on choisit l'un ou l'autre
 
-df_global_long1 <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
+df_global_long1 <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males,total_crabs), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
 ggplot(df_global_long1, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
-  geom_smooth(method = "lm", se =F) + 
+  geom_line() + 
   labs(title = "Dynamique du nombre de crabes de chaque classe d'âge", x = "Année", y = "Nombre de crabes corrigé par l'effort d'échantillonnage", color = "Classe d'âge") +
   theme(axis.title.y = element_text(size = 8)) +
   theme_bw()
 
-df_global_long2 <- pivot_longer(df_global, cols = c(legal_males_pp, adu_fem_pp, juv_fem_pp, juv_males_pp), names_to = "crab_category", values_to = "count")
+df_global_long2 <- pivot_longer(df_global, cols = c(legal_males_pp, adu_fem_pp, juv_fem_pp, juv_males_pp, total_crabs_pp), names_to = "crab_category", values_to = "count")
 ggplot(df_global_long2, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
-  geom_smooth(method = "lm", se =F) + 
+  geom_line() +
   labs(title = "Dynamique du nombre moyen de crabes de chaque classe d'âge par piège", x = "Année", y = "Nombre de crabes moyen par piège", color = "Classe d'âge") +
   theme(axis.title.y = element_text(size = 8)) +
 theme_bw()
