@@ -106,11 +106,12 @@ celsius_simplified <- celsius |>
 celsius_simplified$year<- as.numeric(celsius_simplified$year)
 df_global <- left_join(survey_simplified, celsius_simplified, by = "year")
 
-celsius_more_simplified <- celsius |> # pas sûr de l'utiliser
+celsius_more_simplified <- celsius |> 
   group_by(year) |>
   summarise(temp_moy = mean(temp, na.rm = TRUE)) # calcul de la température moyenne pour chaque année
 
 celsius_more_simplified$year <- as.numeric(celsius_more_simplified$year)
+df_global <- left_join(df_global, celsius_more_simplified, by = "year")
 
 
 # Salinity
@@ -140,7 +141,8 @@ salinity_more_simplified <- salinity |>
   group_by(year) |>
   summarise(sal_moy = mean(salinity, na.rm = TRUE)) # calcul de la salinité moyenne pour chaque année
 
-
+salinity_more_simplified$year <- as.numeric(salinity_more_simplified$year)
+df_global <- left_join(df_global, salinity_more_simplified, by = "year")
 
 # Catch
 catch$year <- paste0("19", catch$year)
@@ -290,25 +292,25 @@ ggplot(eggs) +
 
 
 ## CELSIUS
-printemps <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_printemps)) + geom_point(color = "forestgreen") + geom_smooth(method = "lm", color = "forestgreen")
-été <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_été)) + geom_point(color = "darkorchid") + geom_smooth(method = "lm", color = "darkorchid")
-automne <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_automne)) + geom_point(color = "darkorange") + geom_smooth(method = "lm", color = "darkorange")
-hiver <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_hiver)) + geom_point(color = "darkslategray3") + geom_smooth(method = "lm", color = "darkslategray3")
-grid.arrange(printemps, été, automne, hiver, nrow = 2, ncol = 2)
+plot_temp_printemps <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_printemps)) + geom_point(color = "forestgreen") + geom_smooth(method = "lm", color = "forestgreen")
+plot_temp_été <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_été)) + geom_point(color = "darkorchid") + geom_smooth(method = "lm", color = "darkorchid")
+plot_temp_automne <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_automne)) + geom_point(color = "darkorange") + geom_smooth(method = "lm", color = "darkorange")
+plot_temp_hiver <- ggplot(celsius_simplified, aes(x = year, y = temp_moy_hiver)) + geom_point(color = "darkslategray3") + geom_smooth(method = "lm", color = "darkslategray3")
+grid.arrange(plot_temp_printemps, plot_temp_été, plot_temp_automne, plot_temp_hiver, nrow = 2, ncol = 2)
 
-mod_printemps <- lm(temp_moy_printemps ~ year, data = celsius_simplified) # température moyenne pour chaque saison
-mod_été <- lm(temp_moy_été ~ year, data = celsius_simplified)
-mod_automne <- lm(temp_moy_automne ~ year, data = celsius_simplified)
-mod_hiver <- lm(temp_moy_hiver ~ year, data = celsius_simplified)
+mod_temp_printemps <- lm(temp_moy_printemps ~ year, data = celsius_simplified) # température moyenne pour chaque saison
+mod_temp_été <- lm(temp_moy_été ~ year, data = celsius_simplified)
+mod_temp_automne <- lm(temp_moy_automne ~ year, data = celsius_simplified)
+mod__temp_hiver <- lm(temp_moy_hiver ~ year, data = celsius_simplified)
 par(mfrow=c(2,2))
-plot(mod_printemps)
-plot(mod_été)
-plot(mod_automne)
-plot(mod_hiver)
-summary(mod_printemps) # **
-summary(mod_été) # **
-summary(mod_automne) # pas significatif
-summary(mod_hiver) # pas significatif
+plot(mod_temp_printemps)
+plot(mod_temp_été)
+plot(mod_temp_automne)
+plot(mod_temp_hiver)
+summary(mod_temp_printemps) # **
+summary(mod_temp_été) # **
+summary(mod_temp_automne) # pas significatif
+summary(mod_temp_hiver) # pas significatif
 
 mod_temp_year <- lm(temp_moy ~ year, data = celsius_more_simplified) # température moyenne par année
 par(mfrow=c(2,2))
@@ -322,8 +324,32 @@ ggplot(celsius_more_simplified) +
   geom_smooth(method="lm", color = "red")
 
 
+## SALINITE
+plot_sal_printemps <- ggplot(salinity_simplified, aes(x = year, y = sal_moy_printemps)) + geom_point(color = "forestgreen") + geom_smooth(method = "lm", color = "forestgreen")
+plot_sal_été <- ggplot(salinity_simplified, aes(x = year, y = sal_moy_été)) + geom_point(color = "darkorchid") + geom_smooth(method = "lm", color = "darkorchid")
+plot_sal_automne <- ggplot(salinity_simplified, aes(x = year, y = sal_moy_automne)) + geom_point(color = "darkorange") + geom_smooth(method = "lm", color = "darkorange")
+plot_sal_hiver <- ggplot(salinity_simplified, aes(x = year, y = sal_moy_hiver)) + geom_point(color = "darkslategray3") + geom_smooth(method = "lm", color = "darkslategray3")
+grid.arrange(plot_sal_printemps, plot_sal_été, plot_sal_automne, plot_sal_hiver, nrow = 2, ncol = 2)
+
+mod_sal_printemps <- lm(sal_moy_printemps ~ year, data = salinity_simplified) # température moyenne pour chaque saison
+mod_sal_été <- lm(sal_moy_été ~ year, data = salinity_simplified)
+mod_sal_automne <- lm(sal_moy_automne ~ year, data = salinity_simplified)
+mod_sal_hiver <- lm(sal_moy_hiver ~ year, data = salinity_simplified)
+par(mfrow=c(2,2))
+plot(mod_sal_printemps)
+plot(mod_sal_été)
+plot(mod_sal_automne)
+plot(mod_sal_hiver)
+summary(mod_sal_printemps) # *
+summary(mod_sal_été) # pas significatif
+summary(mod_sal_automne) # pas significatif
+summary(mod_sal_hiver) # pas significatif
+
 
 ## Régressions linéaire multiples
 df_global_short <- df_global[1:11,] # car on a des NA pour 1984 à 1986 pour la salinité et la quantité de crabes pêchés
 
-
+mod_total_crabs <- lm(total_crabs ~ sal_moy, data = df_global_short)
+par(mfrow=c(2,2))
+plot(mod_total_crabs)
+summary(mod_total_crabs)
