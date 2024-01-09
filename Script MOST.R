@@ -311,9 +311,8 @@ anova(ancova_temp)
 AIC(ancova_temp_inter, ancova_temp) # + AIC faible, mieux c'est : sans interaction mieux
 BIC(ancova_temp_inter, ancova_temp) # + BIC faible, mieux c'est : sans interaction mieux
 anova(ancova_temp_inter, ancova_temp) # + RSS faible, mieux c'est : avec interaction mieux
-summary(ancova_temp_inter)$r.squared 
-summary(ancova_temp)$r.squared # R² de sans interaction est plus grand
- 
+# meilleure p-value pour le modèle sans interaction
+# On utilise donc le modèle sans interaction
 
 ## SALINITE
 ggplot(salinity, aes(x = year, y = salinity, color = saison))+
@@ -321,21 +320,38 @@ ggplot(salinity, aes(x = year, y = salinity, color = saison))+
   labs(x = "Année", y = "Salinité de l'eau à 100m de profondeur (en parties par milliers)", color = "Saison")+
   geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la salinté sur les variables de survey
 
-ancova_salinity <- lm(salinity ~ year*saison, data = salinity)
-shapiro.test(ancova_salinity$residuals)
+# avec interaction
+ancova_salinity_inter <- lm(salinity ~ year*saison, data = salinity)
+shapiro.test(ancova_salinity_inter$residuals)
 par(mfrow=c(2,2))
-plot(ancova_salinity) # résidus non normaux donc on va normaliser la salinité pour chaque saison
+plot(ancova_salinity_inter) # résidus non normaux donc on va normaliser la salinité pour chaque saison
 
+# avec interaction normalisé
 salinity_normalized <- salinity %>%
   group_by(saison) %>%
   mutate(salinity_normalized = bestNormalize(salinity, out_of_sample = FALSE)$x.t)
 
-ancova_salinity_normalized <- lm(salinity_normalized ~ year*saison, data = salinity_normalized)
+ancova_salinity_inter_normalized <- lm(salinity_normalized ~ year*saison, data = salinity_normalized)
+shapiro.test(ancova_salinity_inter_normalized$residuals)
+par(mfrow=c(2,2))
+plot(ancova_salinity_inter_normalized)
+summary(ancova_salinity_inter_normalized)
+anova(ancova_salinity_inter_normalized) # year ** et salinité pas significatif
+
+# sans interaction normalisé
+ancova_salinity_normalized <- lm(salinity_normalized ~ year + saison, data = salinity_normalized)
 shapiro.test(ancova_salinity_normalized$residuals)
 par(mfrow=c(2,2))
 plot(ancova_salinity_normalized)
 summary(ancova_salinity_normalized)
-anova(ancova_salinity_normalized) # year ** et salinité pas significatif
+anova(ancova_salinity_normalized)
+
+# Test des 2 modèles
+AIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + AIC faible, mieux c'est : sans interaction mieux
+BIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + BIC faible, mieux c'est : sans interaction mieux
+anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) # RSS + faible avec interaction, donc mieux
+# p-value plus faible pour le modèle sans interaction
+# on choisit donc le modèle sans interaction
 
 
 ## SALINITY & TEMP sur SURVEY
