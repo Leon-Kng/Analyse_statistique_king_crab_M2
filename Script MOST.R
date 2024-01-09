@@ -311,12 +311,12 @@ salinity_normalized <- salinity %>%
   group_by(saison) %>%
   mutate(salinity_normalized = bestNormalize(salinity, out_of_sample = FALSE)$x.t)
 
-ancova_salinity <- lm(salinity_normalized ~ year*saison, data = salinity_normalized)
-shapiro.test(ancova_salinity$residuals)
+ancova_salinity_normalized <- lm(salinity_normalized ~ year*saison, data = salinity_normalized)
+shapiro.test(ancova_salinity_normalized$residuals)
 par(mfrow=c(2,2))
-plot(ancova_salinity)
-summary(ancova_salinity)
-anova(ancova_salinity) # year ** et salinité pas significatif
+plot(ancova_salinity_normalized)
+summary(ancova_salinity_normalized)
+anova(ancova_salinity_normalized) # year ** et salinité pas significatif
 
 ## FLEET 
 ggplot(fleet, aes(x = crabs_caught, y = price_pound)) + # pour étudier l'évolution du prix (en $ per pound) en fonction du nb de crabes pêchés
