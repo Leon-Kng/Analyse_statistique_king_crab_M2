@@ -83,7 +83,7 @@ survey_simplified <- survey |>
             pre_recruit_3_pp = mean(pre_recruit_3_per_pot),
             pre_recruit_4_pp = mean(pre_recruit_4_per_pot),
             total_crabs_pp = mean(total_crabs_per_pot)
-            ) |> 
+  ) |> 
   mutate(sex_ratio = (juv_males + legal_males)/(juv_fem + adu_fem))
 
 survey_long_category <- survey |> 
@@ -114,7 +114,7 @@ celsius_simplified <- celsius |>
          temp_moy_automne = automne,
          temp_moy_été = été,
          temp_moy_printemps = printemps)
-  
+
 
 celsius_simplified$year<- as.numeric(celsius_simplified$year)
 df_global <- left_join(survey_simplified, celsius_simplified, by = "year")
@@ -135,10 +135,10 @@ salinity$salinity<- as.numeric(salinity$salinity)
 
 salinity <- salinity |>
   mutate(saison = case_when(
-      month %in% c(12, 1, 2) ~ "hiver",
-      month %in% c(3, 4, 5) ~ "printemps",
-      month %in% c(6, 7, 8) ~ "été",
-      month %in% c(9, 10, 11) ~ "automne")) |> 
+    month %in% c(12, 1, 2) ~ "hiver",
+    month %in% c(3, 4, 5) ~ "printemps",
+    month %in% c(6, 7, 8) ~ "été",
+    month %in% c(9, 10, 11) ~ "automne")) |> 
   select(-month)
 
 salinity_simplified <- salinity |> 
@@ -221,9 +221,9 @@ dstns_simplified <- dstns_sum|>
 dstns_simplified_long <- dstns_simplified |> 
   select(-length_moy_adu_F, - length_moy_juv_F) |> 
   pivot_longer(cols = -year, 
-    names_to = "category", 
-    names_prefix = "length_moy_",
-    values_to = "length_moy")
+               names_to = "category", 
+               names_prefix = "length_moy_",
+               values_to = "length_moy")
 
 df_global <- left_join(df_global, dstns_simplified, by = "year")
 
@@ -280,7 +280,7 @@ ggplot(df_global_long2, aes(x = year, y = count, color = crab_category, group = 
   geom_line() +
   labs(title = "Dynamique du nombre moyen de crabes de chaque classe d'âge par piège", x = "Année", y = "Nombre de crabes moyen par piège", color = "Classe d'âge") +
   theme(axis.title.y = element_text(size = 8)) +
-theme_bw()
+  theme_bw()
 
 ggplot(df_global, aes(x = year, y = total_crabs))+
   labs(title = "Nombre de crabes corrigé par l'effort d'échantillonnage par année", x = "Années", y = "Nombre de crabes corrigé par l'effort d'échantillonnage")+
@@ -385,7 +385,18 @@ ggplot(df_global, aes(x = year, y = sex_ratio))+ # sex-ratio dimiunue au cours d
   geom_point()+
   geom_smooth(method = "lm")
 
-summary(lm(sex_ratio ~ temp_moy + sal_moy, data = df_global)) # sex-ratio ne dépend pas de la salinité, ni de la température
+mod_sex_ratio_temp_sal <- lm(sex_ratio ~ temp_moy + sal_moy, data = df_global)
+par(mfrow=c(2,2))
+plot(mod_sex_ratio_temp_sal)
+shapiro.test(mod_sex_ratio_temp_sal$residuals)
+
+# normalisation des données
+sex_ratio_norm <- bestNormalize(df_global$sex_ratio, out_of_sample = FALSE)
+mod_sex_ratio_temp_sal <- lm(sex_ratio_norm$x.t ~ temp_moy + sal_moy, data = df_global)
+par(mfrow=c(2,2))
+plot(mod_sex_ratio_temp_sal)
+shapiro.test(mod_sex_ratio_temp_sal$residuals)
+summary(mod_sex_ratio_temp_sal) # sex-ratio ne dépend pas de la salinité, ni de la température
 
 
 ## FLEET 
@@ -458,5 +469,4 @@ ggplot(df_global, aes(x = sal_moy, y = estim_eggs_per_adu_f))+
   geom_point(color = "#FF8B8B")+
   geom_smooth(method = "lm", se = F, color = "#FF8B8B")
 summary(lm(estim_eggs_per_adu_f ~ sal_moy, data = df_global)) # *
-
 
