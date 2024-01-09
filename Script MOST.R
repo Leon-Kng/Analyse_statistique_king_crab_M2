@@ -177,6 +177,7 @@ fleet_simplified <- rename(fleet_simplified, crabs_caught_last_year = crabs_caug
 fleet_simplified$year <- as.numeric(fleet_simplified$year)
 
 df_global <- left_join(df_global, fleet_simplified, by = "year")
+df_global <- left_join(df_global, fleet[,c(1,6)], by = "year") # ajout du prix à df_global
 
 # Catch
 
@@ -289,7 +290,7 @@ ggplot(df_global, aes(x = year, y = total_crabs))+
 ggplot(celsius, aes(x = year, y = temp, color = saison))+
   geom_point()+
   labs(x = "Année", y = "Température de l'eau à 100m de profondeur (en °C)", color = "Saison")+
-  geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la température sur les variables de survey
+  geom_smooth(method="lm", se=F)
 
 # avec interaction
 ancova_temp_inter <- lm(temp ~ year*saison, data = celsius)
@@ -446,3 +447,7 @@ ggplot(df_global, aes(x = sal_moy, y = estim_eggs_per_adu_f))+
   geom_point(color = "#FF8B8B")+
   geom_smooth(method = "lm", se = F, color = "#FF8B8B")
 summary(lm(estim_eggs_per_adu_f ~ sal_moy, data = df_global)) # *
+
+
+# Test série temporelle
+
