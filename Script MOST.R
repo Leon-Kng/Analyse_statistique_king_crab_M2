@@ -83,6 +83,11 @@ survey_simplified <- survey |>
             total_crabs_pp = mean(total_crabs_per_pot)
             ) 
 
+survey_long_category <- survey |> 
+  select(year, legal_males_per_pot, adu_fem_per_pot, juv_fem_per_pot, juv_males_per_pot) |> 
+  pivot_longer(cols = c(legal_males_per_pot, adu_fem_per_pot, juv_fem_per_pot, juv_males_per_pot), names_to = "crab_category", values_to = "nb_crabs_per_pot")
+
+survey_long_category$crab_category <- str_remove(survey_long_category$crab_category, "_per_pot")
 
 # Celsius
 celsius$year <- paste0("19", celsius$year) # ajout de 19 devant les nb pour avoir une année
@@ -233,8 +238,7 @@ fullness_simplified <- fullness |>
     count_fullness1_29 = sum(fullness1_29),
     count_fullness30_59 = sum(fullness30_59),
     count_fullness60_89 = sum(fullness60_89),
-    count_fullness90_100 = sum(fullness90_100)
-  )
+    count_fullness90_100 = sum(fullness90_100)  )
 
 df_global <- left_join(df_global, fullness_simplified, by = "year")
 
@@ -242,6 +246,7 @@ df_global <- left_join(df_global, fullness_simplified, by = "year")
 ### ANALYSE DES DONNEES ###################
 
 ## SURVEY
+# Test de la méthode de correction de l'effort de pêche
 ggplot(df_global, aes(x = legal_males, y = legal_males_pp))+ # on regarde si on a une différence entre le nb de crabes corrigés et le nb de crabes moyen par piège
   geom_point()+
   geom_smooth(method = "lm", color = "red")+
@@ -249,13 +254,21 @@ ggplot(df_global, aes(x = legal_males, y = legal_males_pp))+ # on regarde si on 
 test <- lm(legal_males~legal_males_pp, data = df_global)
 summary(test) # on remarque que c'est très fortement correlé donc pas de grosse différence si on choisit l'un ou l'autre
 
+# Nb de crabes par casier en fonction du temps pour chaque catégorie
+ggplot(survey_long_category, aes(x = as.factor(year), y = nb_crabs_per_pot, color = crab_category)) +
+  geom_boxplot() +
+  theme_bw()
+
+# Nb de crabes moyen par année de chaque catégorie en fonction du temps (corrigé par l'effort de pêche)
 df_global_long1 <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males,total_crabs), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
 ggplot(df_global_long1, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
-  geom_line() + 
+  geom_smooth(method = "lm")+
   labs(title = "Dynamique du nombre de crabes de chaque classe d'âge", x = "Année", y = "Nombre de crabes corrigé par l'effort d'échantillonnage", color = "Classe d'âge") +
   theme(axis.title.y = element_text(size = 8)) +
   theme_bw()
+
+
 
 df_global_long2 <- pivot_longer(df_global, cols = c(legal_males_pp, adu_fem_pp, juv_fem_pp, juv_males_pp, total_crabs_pp), names_to = "crab_category", values_to = "count")
 ggplot(df_global_long2, aes(x = year, y = count, color = crab_category, group = crab_category)) +
@@ -275,6 +288,7 @@ ggplot(df_global, aes(x = year, y = total_crabs))+
 
 ggplot(celsius, aes(x = year, y = temp, color = saison))+
   geom_point()+
+  labs(x = "Année", y = "Température de l'eau à 100m de profondeur (en °C)", color = "Saison")+
   geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la température sur les variables de survey
 
 ancova_temp <- lm(temp ~ year*saison, data = celsius)
@@ -300,6 +314,7 @@ ggplot(celsius_more_simplified) +
 ## SALINITE
 ggplot(salinity, aes(x = year, y = salinity, color = saison))+
   geom_point()+
+  labs(x = "Année", y = "Salinité de l'eau à 100m de profondeur (en parties par milliers)", color = "Saison")+
   geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la salinté sur les variables de survey
 
 ancova_salinity <- lm(salinity ~ year*saison, data = salinity)
@@ -317,6 +332,28 @@ par(mfrow=c(2,2))
 plot(ancova_salinity_normalized)
 summary(ancova_salinity_normalized)
 anova(ancova_salinity_normalized) # year ** et salinité pas significatif
+
+
+## SALINITY & TEMP sur SURVEY
+# avec la moyenne de crabes par année
+mod_temp_sal_crabs <- lm(legal_males ~ temp_moy + sal_moy, data = df_global) 
+plot(mod_temp_sal)
+shapiro.test(mod_temp_sal$residuals)
+summary(mod_temp_sal)
+
+# avec toutes les valeurs pour chaque année
+mod_temp_sal_survey <- lm(legal_males_per_pot ~ temp_moy_printemps + temp_moy_automne + temp_moy_été + temp_moy_hiver, data = survey)
+plot(mod_temp_sal_survey)
+shapiro.test(mod_temp_sal_survey$residuals)
+summary(mod_temp_sal_survey)
+
+# et sur les oeufs
+df_global_short <- df_global[1:11,]
+mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ temp_moy_printemps + temp_moy_automne + temp_moy_été + temp_moy_hiver + sal_moy_printemps + sal_moy_automne + sal_moy_été + sal_moy_hiver, data = df_global_short) 
+plot(mod_temp_sal_eggs)
+shapiro.test(mod_temp_sal_eggs$residuals)
+summary(mod_temp_sal_eggs)
+
 
 ## FLEET 
 ggplot(fleet, aes(x = crabs_caught, y = price_pound)) + # pour étudier l'évolution du prix (en $ per pound) en fonction du nb de crabes pêchés
@@ -388,12 +425,3 @@ ggplot(df_global, aes(x = sal_moy, y = estim_eggs_per_adu_f))+
   geom_point(color = "#FF8B8B")+
   geom_smooth(method = "lm", se = F, color = "#FF8B8B")
 summary(lm(estim_eggs_per_adu_f ~ sal_moy, data = df_global)) # *
-
-
-## Régressions linéaire multiples
-df_global_short <- df_global[1:11,] # car on a des NA pour 1984 à 1986 pour la salinité et la quantité de crabes pêchés
-
-mod_total_crabs <- lm(total_crabs ~ sal_moy + temp_moy + crabs_caught_last_year, data = df_global_short)
-par(mfrow=c(2,2))
-plot(mod_total_crabs)
-summary(mod_total_crabs)
