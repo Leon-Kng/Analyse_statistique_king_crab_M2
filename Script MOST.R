@@ -5,6 +5,8 @@ setwd("C:/Users/Nomade01/Desktop/M2 ECOEVO/MOST/Projet MOST/data")
 ### Librairies ###
 library(tidyverse)
 library(bestNormalize)
+library(lme4)
+library(report)
 
 ### CHARGEMENT DES DONNEES ##################
 survey <- read.table("survey", stringsAsFactors=T)
@@ -358,9 +360,9 @@ anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) # RSS + faib
 ## SALINITY & TEMP sur SURVEY
 # avec la moyenne de crabes par année
 mod_temp_sal_crabs <- lm(legal_males ~ temp_moy + sal_moy, data = df_global) 
-plot(mod_temp_sal)
-shapiro.test(mod_temp_sal$residuals)
-summary(mod_temp_sal)
+plot(mod_temp_sal_crabs)
+shapiro.test(mod_temp_sal_crabs$residuals)
+summary(mod_temp_sal_crabs)
 
 # avec toutes les valeurs pour chaque année
 mod_temp_sal_survey <- lm(legal_males_per_pot ~ temp_moy_printemps + temp_moy_automne + temp_moy_été + temp_moy_hiver, data = survey)
@@ -370,12 +372,11 @@ summary(mod_temp_sal_survey)
 
 # et sur les oeufs
 df_global_short <- df_global[1:11,]
-mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy, data = df_global_short) # *
+mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy, data = df_global_short) # * quand que salinité sinon rien quand aussi température
 par(mfrow=c(2,2))
 plot(mod_temp_sal_eggs)
 shapiro.test(mod_temp_sal_eggs$residuals)
 summary(mod_temp_sal_eggs)
-
 
 ## FLEET 
 ggplot(fleet, aes(x = crabs_caught, y = price_pound)) + # pour étudier l'évolution du prix (en $ per pound) en fonction du nb de crabes pêchés
@@ -447,7 +448,4 @@ ggplot(df_global, aes(x = sal_moy, y = estim_eggs_per_adu_f))+
   geom_point(color = "#FF8B8B")+
   geom_smooth(method = "lm", se = F, color = "#FF8B8B")
 summary(lm(estim_eggs_per_adu_f ~ sal_moy, data = df_global)) # *
-
-
-# Test série temporelle
 
