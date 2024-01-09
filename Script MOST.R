@@ -83,7 +83,8 @@ survey_simplified <- survey |>
             pre_recruit_3_pp = mean(pre_recruit_3_per_pot),
             pre_recruit_4_pp = mean(pre_recruit_4_per_pot),
             total_crabs_pp = mean(total_crabs_per_pot)
-            ) 
+            ) |> 
+  mutate(sex_ratio = (juv_males + legal_males)/(juv_fem + adu_fem))
 
 survey_long_category <- survey |> 
   select(year, legal_males_per_pot, adu_fem_per_pot, juv_fem_per_pot, juv_males_per_pot) |> 
@@ -342,7 +343,7 @@ summary(ancova_salinity_inter_normalized)
 anova(ancova_salinity_inter_normalized) # year ** et salinité pas significatif
 
 # sans interaction normalisé
-ancova_salinity_normalized <- lm(salinity_normalized ~ year + saison, data = salinity_normalized)
+ancova_salinity_normalized <- lm(salinity_normalized ~ year + saison , data = salinity_normalized)
 shapiro.test(ancova_salinity_normalized$residuals)
 par(mfrow=c(2,2))
 plot(ancova_salinity_normalized)
@@ -357,7 +358,7 @@ anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) # RSS + faib
 # on choisit donc le modèle sans interaction
 
 
-## SALINITY & TEMP sur SURVEY
+## SALINITY & TEMP sur SURVEY, pas sûr de l'utiliser car compliqué
 # avec la moyenne de crabes par année
 mod_temp_sal_crabs <- lm(legal_males ~ temp_moy + sal_moy, data = df_global) 
 plot(mod_temp_sal_crabs)
@@ -377,6 +378,15 @@ par(mfrow=c(2,2))
 plot(mod_temp_sal_eggs)
 shapiro.test(mod_temp_sal_eggs$residuals)
 summary(mod_temp_sal_eggs)
+
+
+## SEX-RATIO
+ggplot(df_global, aes(x = year, y = sex_ratio))+ # sex-ratio dimiunue au cours du temps = de moins en moins de mâles par rapport aux femelles
+  geom_point()+
+  geom_smooth(method = "lm")
+
+summary(lm(sex_ratio ~ temp_moy + sal_moy, data = df_global)) # sex-ratio ne dépend pas de la salinité, ni de la température
+
 
 ## FLEET 
 ggplot(fleet, aes(x = crabs_caught, y = price_pound)) + # pour étudier l'évolution du prix (en $ per pound) en fonction du nb de crabes pêchés
@@ -448,4 +458,5 @@ ggplot(df_global, aes(x = sal_moy, y = estim_eggs_per_adu_f))+
   geom_point(color = "#FF8B8B")+
   geom_smooth(method = "lm", se = F, color = "#FF8B8B")
 summary(lm(estim_eggs_per_adu_f ~ sal_moy, data = df_global)) # *
+
 
