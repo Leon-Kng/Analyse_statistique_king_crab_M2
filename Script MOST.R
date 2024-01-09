@@ -291,25 +291,29 @@ ggplot(celsius, aes(x = year, y = temp, color = saison))+
   labs(x = "Année", y = "Température de l'eau à 100m de profondeur (en °C)", color = "Saison")+
   geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la température sur les variables de survey
 
-ancova_temp <- lm(temp ~ year*saison, data = celsius)
+# avec interaction
+ancova_temp_inter <- lm(temp ~ year*saison, data = celsius)
+shapiro.test(ancova_temp_inter$residuals)
+par(mfrow=c(2,2))
+plot(ancova_temp_inter)
+summary(ancova_temp_inter)
+anova(ancova_temp_inter) # *** year et saison
+
+# sans interaction
+ancova_temp <- lm(temp ~ year + saison, data = celsius)
 shapiro.test(ancova_temp$residuals)
 par(mfrow=c(2,2))
 plot(ancova_temp)
 summary(ancova_temp)
-anova(ancova_temp) # *** year et saison
+anova(ancova_temp)
 
-
-mod_temp_year <- lm(temp_moy ~ year, data = celsius_more_simplified) # température moyenne par année
-par(mfrow=c(2,2))
-plot(mod_temp_year)
-summary(mod_temp_year)
-
-ggplot(celsius_more_simplified) +
-  aes(x = year, y = temp_moy) +
-  geom_point(colour = "#494AFF") +
-  theme_minimal() +
-  geom_smooth(method="lm", color = "red")
-
+# comparaison des 2 modèles
+AIC(ancova_temp_inter, ancova_temp) # + AIC faible, mieux c'est : sans interaction mieux
+BIC(ancova_temp_inter, ancova_temp) # + BIC faible, mieux c'est : sans interaction mieux
+anova(ancova_temp_inter, ancova_temp) # + RSS faible, mieux c'est : avec interaction mieux
+summary(ancova_temp_inter)$r.squared 
+summary(ancova_temp)$r.squared # R² de sans interaction est plus grand
+ 
 
 ## SALINITE
 ggplot(salinity, aes(x = year, y = salinity, color = saison))+
@@ -349,7 +353,8 @@ summary(mod_temp_sal_survey)
 
 # et sur les oeufs
 df_global_short <- df_global[1:11,]
-mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ temp_moy_printemps + temp_moy_automne + temp_moy_été + temp_moy_hiver + sal_moy_printemps + sal_moy_automne + sal_moy_été + sal_moy_hiver, data = df_global_short) 
+mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy, data = df_global_short) # *
+par(mfrow=c(2,2))
 plot(mod_temp_sal_eggs)
 shapiro.test(mod_temp_sal_eggs$residuals)
 summary(mod_temp_sal_eggs)
