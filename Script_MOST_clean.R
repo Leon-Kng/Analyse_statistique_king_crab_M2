@@ -2,13 +2,13 @@
 rm(list=ls())
 setwd("C:/Users/Nomade01/Desktop/M2 ECOEVO/MOST/Projet MOST/data")
 
-### Librairies ###
+# Librairies
 library(tidyverse)
 library(bestNormalize)
 library(RColorBrewer)
 
 
-### CHARGEMENT DES DONNEES ##################
+### CHARGEMENT DES DONNEES ##########################################################################################
 survey <- read.table("survey", stringsAsFactors=T)
 survey <-rename(survey,year = V1, fishing_district = V2,Station_ID=V3,pots_fished=V4,latitude_halfway_pot=V5,longitude_halfway_pot=V6,pre_recruit_4=V7,pre_recruit_3=V8,pre_recruit_2=V9,pre_recruit_1=V10,recruit_males=V11,post_recruit=V12,juv_fem=V13,adu_fem=V14)
 
@@ -37,7 +37,7 @@ fullness <- read.table("fullness",stringsAsFactors=T)
 fullness <-rename(fullness, year= V1, size_mm= V2,fullness0=V3,fullness1_29=V4,fullness30_59=V5,fullness60_89=V6,fullness90_100=V7)
 
 
-### MODIFICATION DES DONNEES ##################
+### MODIFICATION DES DONNEES ##########################################################################################
 
 # Survey
 survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir une année
@@ -267,7 +267,9 @@ df_global <- left_join(df_global, fullness_simplified, by = "year")
 df_global_long <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males,total_crabs), names_to = "crab_category", values_to = "count")
 
 
-### ANALYSE ECHANTILLONNAGE ##################### 
+
+
+### ANALYSE ECHANTILLONNAGE ################################################################################################################################# 
 # On regarde la tête des données : Nb de crabes par casier en fonction du temps pour chaque catégorie
 ggplot(survey_long_category, aes(x = as.factor(year), y = nb_crabs_per_pot, color = crab_category)) +
   geom_boxplot() +
@@ -299,7 +301,9 @@ ggplot(df_global_long, aes(x = year, y = count, color = crab_category, group = c
 
 
 
-### ANALYSE TEMPERATURE ##################### 
+
+
+### ANALYSE TEMPERATURE ################################################################################################################################# 
 ggplot(celsius, aes(x = year, y = temp, color = saison))+
   geom_point()+
   labs(x = "Année", y = "Température de l'eau à 100m de profondeur (en °C)", color = "Saison")+
@@ -331,7 +335,9 @@ anova(ancova_temp_inter, ancova_temp) # + RSS faible, mieux c'est : pas de diff�
 
 
 
-### ANALYSE SALINITE ##################### 
+
+
+### ANALYSE SALINITE #################################################################################################################################
 ggplot(salinity, aes(x = year, y = salinity, color = saison))+
   geom_point()+
   labs(x = "Année", y = "Salinité de l'eau à 100m de profondeur (en parties par milliers)", color = "Saison")+
@@ -373,7 +379,8 @@ anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + RSS faib
 
 
 
-### ANALYSE OEUFS ##################### 
+
+### ANALYSE OEUFS ############################################################################################################
 # Sûrement pas utilisé mais peut être utile
 df_global_short <- df_global[1:11,]
 mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy + temp_moy, data = df_global_short) # * quand que salinité sinon rien quand aussi température
@@ -384,7 +391,8 @@ summary(mod_temp_sal_eggs) # * sal_moy mais temp_moy pas significative
 
 
 
-### ANALYSE TAILLE ##################### 
+
+### ANALYSE TAILLE ##################################################################################################
 ## TAILLE DES CRABES EN FONCTION DE SAL ET TEMP
 mod_taille_temp_sal <- lm(length_mm ~ temp_moy + sal_moy + sex, data = dstns_long)
 par(mfrow=c(2,2))
