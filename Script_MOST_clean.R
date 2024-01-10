@@ -6,6 +6,7 @@ setwd("C:/Users/Nomade01/Desktop/M2 ECOEVO/MOST/Projet MOST/data")
 library(tidyverse)
 library(bestNormalize)
 library(RColorBrewer)
+library(report)
 
 
 ### CHARGEMENT DES DONNEES ##########################################################################################
@@ -236,7 +237,7 @@ dstns_simplified <- dstns_sum|>
 dstns_simplified_long <- dstns_simplified |> 
   select(-length_moy_adu_F, - length_moy_juv_F) |> 
   pivot_longer(cols = -year, 
-               names_to = "category", 
+               names_to = "sex", 
                names_prefix = "length_moy_",
                values_to = "length_moy")
 
@@ -343,7 +344,7 @@ ggplot(salinity, aes(x = year, y = salinity, color = saison))+
   labs(x = "Année", y = "Salinité de l'eau à 100m de profondeur (en parties par milliers)", color = "Saison")+
   geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la salinté sur les variables de survey
 
-# avec interaction
+# ANCOVA avec interaction
 ancova_salinity_inter <- lm(salinity ~ year*saison, data = salinity)
 shapiro.test(ancova_salinity_inter$residuals)
 par(mfrow=c(2,2))
@@ -354,7 +355,7 @@ salinity_normalized <- salinity %>%
   group_by(saison) %>%
   mutate(salinity_norm = bestNormalize(salinity, out_of_sample = FALSE)$x.t)
 
-# avec interaction 
+# ANCOVA avec interaction 
 ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized)
 shapiro.test(ancova_salinity_inter_normalized$residuals)
 par(mfrow=c(2,2))
@@ -362,7 +363,7 @@ plot(ancova_salinity_inter_normalized)
 summary(ancova_salinity_inter_normalized)
 anova(ancova_salinity_inter_normalized) #  ** year mais saison pas significatif
 
-# sans interaction normalisé
+# ANCOVA sans interaction normalisée
 ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity_normalized)
 shapiro.test(ancova_salinity_normalized$residuals)
 par(mfrow=c(2,2))
@@ -382,6 +383,7 @@ anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + RSS faib
 
 ### ANALYSE OEUFS ############################################################################################################
 # Sûrement pas utilisé mais peut être utile
+# REGRESSION LINEAIRE
 df_global_short <- df_global[1:11,]
 mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy + temp_moy, data = df_global_short) # * quand que salinité sinon rien quand aussi température
 par(mfrow=c(2,2))
@@ -393,11 +395,46 @@ summary(mod_temp_sal_eggs) # * sal_moy mais temp_moy pas significative
 
 
 ### ANALYSE TAILLE ##################################################################################################
-## TAILLE DES CRABES EN FONCTION DE SAL ET TEMP
+# Graphique avec les tailles moyennes pour chaque année car trop de données sinon
+plot_ly(dstns_simplified_long, x = ~temp_moy, y = ~sal_moy, z = ~length_moy, color = ~sex, type = 'scatter3d', mode = 'markers') %>%
+  layout(title = "3D Scatter Plot des crabes",
+         scene = list(
+           xaxis = list(title = "Température de l'eau (en °C)"),
+           yaxis = list(title = "Salinité de l'eau (en parties par milliers)"),
+           zaxis = list(title = "Longueur (en mm)")
+         ))
+
+# Longueur moyenne annuelle en fonction de la température moyenne de l'année pour chaque sexe
+ggplot(dstns_simplified_long, aes(x = temp_moy, y = length_moy, color = sex))+
+  geom_point()+
+  geom_smooth(method = "lm", se = F)
+
+# Longueur moyenne annuelle en fonction de la salinité moyenne de l'année pour chaque sexe
+ggplot(dstns_simplified_long, aes(x = sal_moy, y = length_moy, color = sex))+
+  geom_point()+
+  geom_smooth(method = "lm", se = F)
+
+# Longueur en fonction de la température moyenne de l'année, pour chaque sexe
+ggplot(dstns_long, aes(x = as.factor(temp_moy), y = length_mm, fill = sex))+
+  geom_violin()
+
+# Longueur en fonction de la salinité moyenne de l'année, pour chaque sexe
+ggplot(dstns_long, aes(x = as.factor(sal_moy), y = length_mm, fill = sex))+
+  geom_violin()
+
+# ANCOVA - 3 FACTEURS
 mod_taille_temp_sal <- lm(length_mm ~ temp_moy + sal_moy + sex, data = dstns_long)
 par(mfrow=c(2,2))
 plot(mod_taille_temp_sal)
-shapiro.test(mod_taille_temp_sal$residuals)
-summary(mod_taille_temp_sal)
+summary(mod_taille_temp_sal) # R² faible donc bcp de variance pas expliquée, on peut justifier cela par le fait que les différentes classes d'âges sont fusionnées
 
+
+# On va tester si température seule a un effet car graphiquement on ne le voit pas 
+# REGRESSION LINEAIRE - Longueur en fonction de la température moyenne de l'année (uniquement mâles)
+dstns_long_M <- dstns_long |> 
+  filter(sex == "M")
+mod_taille_temp_M <- lm(length_mm ~ temp_moy, data = dstns_long_M)
+par(mfrow=c(2,2))
+plot(mod_taille_temp_M)
+summary(mod_taille_temp_M)
 
