@@ -23,8 +23,8 @@ survey_map$year <- paste0("19", survey_map$year) # ajout de 19 devant les nb pou
 survey_map$year <- as.factor(survey_map$year)
 survey_map$legal_males <- survey_map$post_recruit + survey_map$recruit_males
 survey_map$Total_crabs <- rowSums(survey_map[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
-survey_map_count <- survey_map %>%
-  group_by(year) %>%
+survey_map_count <- survey_map |>
+  group_by(year) |>
   summarise(Nb_legal_males = sum(legal_males))
 survey_map$fishing_district <- as.factor(survey_map$fishing_district)
 
@@ -37,7 +37,7 @@ y_limits <- range(kodiak$latitude)
 
 
 # Créer un graphique de base avec Plotly
-base_plot <- plot_ly() %>%
+base_plot <- plot_ly() |>
   add_trace(
     data = kodiak,
     x = ~-longitude,
@@ -46,7 +46,7 @@ base_plot <- plot_ly() %>%
     mode = 'lines',
     line = list(color = 'black'),
     showlegend = FALSE
-  ) %>%
+  ) |>
   layout(
     xaxis = list(title = "Longitude"),
     yaxis = list(title = "Latitude"),
@@ -67,7 +67,7 @@ data_by_year <- lapply(unique(survey_map$year), function(yr) {
 
 # Ajouter les données de chaque année au graphique de base pour chaque frame
 for (i in seq_along(data_by_year)) {
-  base_plot <- base_plot %>%
+  base_plot <- base_plot |>
     add_trace(
       data = data_by_year[[i]],
       x = ~x,
@@ -81,8 +81,8 @@ for (i in seq_along(data_by_year)) {
     )
 }
 
-base_plot %>%
-  animation_opts(frame = 500, redraw = TRUE, transition = 0) %>%
+base_plot |>
+  animation_opts(frame = 500, redraw = TRUE, transition = 0) |>
   animation_slider(
     currentvalue = list(prefix = "Année: "),
     steps = lapply(
@@ -93,7 +93,7 @@ base_plot %>%
         args = list(list("frame", list(duration = 0)), list("transition", list(duration = 0)))
       )
     )
-  ) %>%
+  ) |>
   layout(
     hovermode = "closest", # Afficher les informations au survol du point le plus proche
     hoverinfo = "text"     # Afficher les informations définies dans 'text' au survol
