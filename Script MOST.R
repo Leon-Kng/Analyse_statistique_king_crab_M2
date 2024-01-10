@@ -299,9 +299,10 @@ summary(mod_crab_year)
 df_global_long1 <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males,total_crabs), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
 ggplot(df_global_long1, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
-  geom_smooth(method = "lm")+
-  labs(title = "Dynamique du nombre de crabes de chaque classe d'âge", x = "Année", y = "Nombre de crabes corrigé par l'effort d'échantillonnage", color = "Classe d'âge") +
+  geom_smooth(method = "lm", se = F)+
+  labs(title = "Dynamique du nombre de crabes", x = "Année", y = "Nombre de crabes corrigé par l'effort d'échantillonnage", color = "Classe d'âge et sexe") +
   theme(axis.title.y = element_text(size = 8)) +
+  scale_colour_manual(values = rainbow(5), labels = c("Femelles adultes", "Femelles juvéniles", "Mâles juvéniles", "Mâles légaux", "Total")) +
   theme_bw()
 
 
@@ -405,11 +406,11 @@ summary(mod_temp_sal_survey)
 
 # et sur les oeufs
 df_global_short <- df_global[1:11,]
-mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy + temp_moy_été, data = df_global_short) # * quand que salinité sinon rien quand aussi température
+mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy + temp_moy, data = df_global_short) # * quand que salinité sinon rien quand aussi température
 par(mfrow=c(2,2))
 plot(mod_temp_sal_eggs)
 shapiro.test(mod_temp_sal_eggs$residuals)
-summary(mod_temp_sal_eggs) # temp_été * ou sal_moy
+summary(mod_temp_sal_eggs) # * sal_moy mais temp_moy pas significative
 
 
 ## SEX-RATIO
@@ -418,13 +419,6 @@ ggplot(df_global, aes(x = year, y = sex_ratio))+ # sex-ratio dimiunue au cours d
   geom_smooth(method = "lm")
 
 mod_sex_ratio_temp_sal <- lm(sex_ratio ~ temp_moy + sal_moy, data = df_global)
-par(mfrow=c(2,2))
-plot(mod_sex_ratio_temp_sal)
-shapiro.test(mod_sex_ratio_temp_sal$residuals)
-
-# normalisation des données
-sex_ratio_norm <- bestNormalize(df_global$sex_ratio, out_of_sample = FALSE)
-mod_sex_ratio_temp_sal <- lm(sex_ratio_norm$x.t ~ temp_moy + sal_moy data = df_global)
 par(mfrow=c(2,2))
 plot(mod_sex_ratio_temp_sal)
 shapiro.test(mod_sex_ratio_temp_sal$residuals)
