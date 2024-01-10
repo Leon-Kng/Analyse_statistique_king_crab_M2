@@ -267,9 +267,7 @@ df_global <- left_join(df_global, fullness_simplified, by = "year")
 df_global_long <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males,total_crabs), names_to = "crab_category", values_to = "count")
 
 
-
-### ANALYSE DES DONNEES ###################
-
+### ANALYSE ECHANTILLONNAGE ##################### 
 # On regarde la tête des données : Nb de crabes par casier en fonction du temps pour chaque catégorie
 ggplot(survey_long_category, aes(x = as.factor(year), y = nb_crabs_per_pot, color = crab_category)) +
   geom_boxplot() +
@@ -285,7 +283,7 @@ ggplot(survey_long_category, aes(x = year, y = nb_crabs_per_pot, color = crab_ca
 ggplot(df_global_long, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)+
-  labs(title = "Nombre moyen de crabes par année (corrigé par l'effort d'échantillonnage)", x = "Année", y = "Nombre de crabes corrigé par l'effort d'échantillonnage", color = "Classe d'âge et sexe") +
+  labs(title = "Nombre de crabes échantillonnés par année (corrigé par l'effort d'échantillonnage)", x = "Année", y = "Nombre de crabes échantillonnés (corrigé par l'effort d'échantillonnage)", color = "Classe d'âge et sexe") +
   theme(axis.title.y = element_text(size = 8)) +
   scale_colour_manual(values =  brewer.pal(5, "Set1"), labels = c("Femelles adultes", "Femelles juvéniles", "Mâles juvéniles", "Mâles légaux", "Total")) +
   theme_bw()
@@ -294,10 +292,104 @@ ggplot(df_global_long, aes(x = year, y = count, color = crab_category, group = c
 ggplot(df_global_long, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
   geom_line() +
-  labs(title = "Nombre moyen de crabes par année (corrigé par l'effort d'échantillonnage)", x = "Année", y = "Nombre de crabes moyen par piège", color = "Classe d'âge et sexe") +
+  labs(title = paste("Nombre de crabes échantillonnés par année \n (corrigé par l'effort d'échantillonnage)"), x = "Année", y = "Nombre de crabes échantillonnés (corrigé par l'effort d'échantillonnage)", color = "Classe d'âge et sexe") +
   scale_colour_manual(values =  brewer.pal(5, "Set1"), labels = c("Femelles adultes", "Femelles juvéniles", "Mâles juvéniles", "Mâles légaux", "Total")) +
-  theme(axis.title.y = element_text(size = 8)) +
+  theme(axis.title.y = element_text(8)) +
   theme_bw()
 
+
+
+### ANALYSE TEMPERATURE ##################### 
+ggplot(celsius, aes(x = year, y = temp, color = saison))+
+  geom_point()+
+  labs(x = "Année", y = "Température de l'eau à 100m de profondeur (en °C)", color = "Saison")+
+  geom_smooth(method="lm", se=F)
+
+# Etude de l'effet de l'année et de la saison sur la température de l'eau
+# avec interaction
+ancova_temp_inter <- lm(temp ~ year*saison, data = celsius)
+shapiro.test(ancova_temp_inter$residuals)
+par(mfrow=c(2,2))
+plot(ancova_temp_inter)
+summary(ancova_temp_inter)
+anova(ancova_temp_inter) # *** year et saison mais pas l'interaction
+
+# sans interaction
+ancova_temp <- lm(temp ~ year + saison, data = celsius)
+shapiro.test(ancova_temp$residuals)
+par(mfrow=c(2,2))
+plot(ancova_temp)
+summary(ancova_temp)
+anova(ancova_temp) # *** year et saison
+
+# comparaison des 2 modèles
+AIC(ancova_temp_inter, ancova_temp) # + AIC faible, mieux c'est : sans interaction mieux
+BIC(ancova_temp_inter, ancova_temp) # + BIC faible, mieux c'est : sans interaction mieux
+anova(ancova_temp_inter, ancova_temp) # + RSS faible, mieux c'est : pas de différence significative donc on prend le modèle le plus simple : sans interaction
+# meilleure p-value pour le modèle sans interaction
+# On utilise donc le modèle sans interaction
+
+
+
+### ANALYSE SALINITE ##################### 
+ggplot(salinity, aes(x = year, y = salinity, color = saison))+
+  geom_point()+
+  labs(x = "Année", y = "Salinité de l'eau à 100m de profondeur (en parties par milliers)", color = "Saison")+
+  geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la salinté sur les variables de survey
+
+# avec interaction
+ancova_salinity_inter <- lm(salinity ~ year*saison, data = salinity)
+shapiro.test(ancova_salinity_inter$residuals)
+par(mfrow=c(2,2))
+plot(ancova_salinity_inter) # résidus non normaux donc on va normaliser la salinité pour chaque saison
+
+# normalisation de la salinité pour chaque saison
+salinity_normalized <- salinity %>%
+  group_by(saison) %>%
+  mutate(salinity_norm = bestNormalize(salinity, out_of_sample = FALSE)$x.t)
+
+# avec interaction 
+ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized)
+shapiro.test(ancova_salinity_inter_normalized$residuals)
+par(mfrow=c(2,2))
+plot(ancova_salinity_inter_normalized)
+summary(ancova_salinity_inter_normalized)
+anova(ancova_salinity_inter_normalized) #  ** year mais saison pas significatif
+
+# sans interaction normalisé
+ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity_normalized)
+shapiro.test(ancova_salinity_normalized$residuals)
+par(mfrow=c(2,2))
+plot(ancova_salinity_normalized)
+summary(ancova_salinity_normalized)
+anova(ancova_salinity_normalized) # ** year mais saison pas significatif
+
+# Test des 2 modèles
+AIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + AIC faible, mieux c'est : sans interaction mieux
+BIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + BIC faible, mieux c'est : sans interaction mieux
+anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + RSS faible, mieux c'est : pas de différence significative donc on prend le modèle le plus simple : sans interaction
+# p-value plus faible pour le modèle sans interaction
+# on choisit donc le modèle sans interaction
+
+
+
+### ANALYSE OEUFS ##################### 
+# Sûrement pas utilisé mais peut être utile
+df_global_short <- df_global[1:11,]
+mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy + temp_moy, data = df_global_short) # * quand que salinité sinon rien quand aussi température
+par(mfrow=c(2,2))
+plot(mod_temp_sal_eggs)
+shapiro.test(mod_temp_sal_eggs$residuals)
+summary(mod_temp_sal_eggs) # * sal_moy mais temp_moy pas significative
+
+
+
+### ANALYSE TAILLE ##################### 
+## TAILLE DES CRABES EN FONCTION DE SAL ET TEMP
+mod_taille_temp_sal <- lm(length_mm ~ temp_moy + sal_moy + sex, data = dstns_long)
+par(mfrow=c(2,2))
+plot(mod_taille_temp_sal)
+shapiro.test(mod_taille_temp_sal$residuals)
+summary(mod_taille_temp_sal)
 
 
