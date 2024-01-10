@@ -355,6 +355,12 @@ salinity_normalized <- salinity %>%
   group_by(saison) %>%
   mutate(salinity_norm = bestNormalize(salinity, out_of_sample = FALSE)$x.t)
 
+# Test autre méthode de normalisation
+salinity_normalized <- salinity %>%
+  group_by(saison) %>%
+  mutate(salinity_norm = boxcox(salinity)$x.t)
+
+
 # ANCOVA avec interaction 
 ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized)
 shapiro.test(ancova_salinity_inter_normalized$residuals)
@@ -396,14 +402,6 @@ summary(mod_temp_sal_eggs) # * sal_moy mais temp_moy pas significative
 
 ### ANALYSE TAILLE ##################################################################################################
 # Graphique avec les tailles moyennes pour chaque année car trop de données sinon
-plot_ly(dstns_simplified_long, x = ~temp_moy, y = ~sal_moy, z = ~length_moy, color = ~sex, type = 'scatter3d', mode = 'markers') %>%
-  layout(title = "3D Scatter Plot des crabes",
-         scene = list(
-           xaxis = list(title = "Température de l'eau (en °C)"),
-           yaxis = list(title = "Salinité de l'eau (en parties par milliers)"),
-           zaxis = list(title = "Longueur (en mm)")
-         ))
-
 # Longueur moyenne annuelle en fonction de la température moyenne de l'année pour chaque sexe
 ggplot(dstns_simplified_long, aes(x = temp_moy, y = length_moy, color = sex))+
   geom_point()+
