@@ -264,6 +264,7 @@ fullness_simplified <- fullness |>
 
 df_global <- left_join(df_global, fullness_simplified, by = "year")
 
+df_global_long <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males,total_crabs), names_to = "crab_category", values_to = "count")
 
 
 
@@ -281,22 +282,22 @@ ggplot(survey_long_category, aes(x = year, y = nb_crabs_per_pot, color = crab_ca
 
 # On regarde la dynamique du nb de crabes
 # Nb de crabes moyen par année de chaque catégorie en fonction du temps (corrigé par l'effort de pêche)
-df_global_long1 <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males,total_crabs), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
-ggplot(df_global_long1, aes(x = year, y = count, color = crab_category, group = crab_category)) +
+ggplot(df_global_long, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
   geom_smooth(method = "lm", se = F)+
-  labs(title = "Dynamique du nombre de crabes de chaque classe d'âge", x = "Année", y = "Nombre de crabes corrigé par l'effort d'échantillonnage", color = "Classe d'âge et sexe") +
+  labs(title = "Nombre moyen de crabes par année (corrigé par l'effort d'échantillonnage)", x = "Année", y = "Nombre de crabes corrigé par l'effort d'échantillonnage", color = "Classe d'âge et sexe") +
   theme(axis.title.y = element_text(size = 8)) +
   scale_colour_manual(values =  brewer.pal(5, "Set1"), labels = c("Femelles adultes", "Femelles juvéniles", "Mâles juvéniles", "Mâles légaux", "Total")) +
   theme_bw()
 
 # autre moyen de l'observer, choisir une des 2 !!
-df_global_long2 <- pivot_longer(df_global, cols = c(legal_males_pp, adu_fem_pp, juv_fem_pp, juv_males_pp, total_crabs_pp), names_to = "crab_category", values_to = "count")
-ggplot(df_global_long2, aes(x = year, y = count, color = crab_category, group = crab_category)) +
+ggplot(df_global_long, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
   geom_line() +
-  labs(title = "Dynamique du nombre moyen de crabes par piège", x = "Année", y = "Nombre de crabes moyen par piège", color = "Classe d'âge et sexe") +
+  labs(title = "Nombre moyen de crabes par année (corrigé par l'effort d'échantillonnage)", x = "Année", y = "Nombre de crabes moyen par piège", color = "Classe d'âge et sexe") +
   scale_colour_manual(values =  brewer.pal(5, "Set1"), labels = c("Femelles adultes", "Femelles juvéniles", "Mâles juvéniles", "Mâles légaux", "Total")) +
   theme(axis.title.y = element_text(size = 8)) +
   theme_bw()
+
+
 
