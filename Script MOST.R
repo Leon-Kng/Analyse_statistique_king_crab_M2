@@ -207,6 +207,21 @@ df_global <- left_join(df_global, eggs, by = "year")
 dstns$year <- paste0("19", dstns$year)
 dstns$year <- as.numeric(dstns$year)
 
+dstns_long <- dstns |>
+  mutate(count_F = count_juv_f + count_adu_f,
+         count_M = count_males) |> 
+  select(-count_juv_f, -count_adu_f, -count_males) |> 
+  pivot_longer(
+    cols = starts_with("count"),
+    names_to = "sex",
+    values_to = "count"
+  ) %>%
+  mutate(sex = ifelse(sex == "count_F", "F", "M")) %>%
+  uncount(count)
+
+dstns_long <- left_join(dstns_long, celsius_more_simplified, by="year")
+dstns_long <- left_join(dstns_long, salinity_more_simplified, by="year")
+
 dstns_sum <- dstns |>
   group_by(year) |>
   mutate(count_f = count_juv_f + count_adu_f)
@@ -225,6 +240,9 @@ dstns_simplified_long <- dstns_simplified |>
                names_prefix = "length_moy_",
                values_to = "length_moy")
 
+dstns_simplified_long <- left_join(dstns_simplified_long, celsius_more_simplified, by="year")
+dstns_simplified_long <- left_join(dstns_simplified_long, salinity_more_simplified, by="year")
+
 df_global <- left_join(df_global, dstns_simplified, by = "year")
 
 # Fullness
@@ -242,7 +260,7 @@ fullness_simplified <- fullness |>
     count_fullness1_29 = sum(fullness1_29),
     count_fullness30_59 = sum(fullness30_59),
     count_fullness60_89 = sum(fullness60_89),
-    count_fullness90_100 = sum(fullness90_100)  )
+    count_fullness90_100 = sum(fullness90_100)) 
 
 df_global <- left_join(df_global, fullness_simplified, by = "year")
 
@@ -262,6 +280,20 @@ summary(test) # on remarque que c'est très fortement correlé donc pas de gross
 ggplot(survey_long_category, aes(x = as.factor(year), y = nb_crabs_per_pot, color = crab_category)) +
   geom_boxplot() +
   theme_bw()
+
+ggplot(survey_long_category, aes(x = year, y = nb_crabs_per_pot, color = crab_category))+
+  geom_point()+
+  geom_smooth(method = "lm")
+
+nb_crabs_per_pot_norm <- bestNormalize(survey_long_category$nb_crabs_per_pot)
+
+mod_crab_year <- lm(nb_crabs_per_pot_norm$x.t ~ year + crab_category, data = survey_long_category) # ne fonctionne pas !! on doit utiliser la moyenne par année même si pas ouf
+par(mfrow=c(2,2))
+shapiro.test(mod_crab_year$residuals)
+plot(mod_crab_year)
+summary(mod_crab_year)
+
+
 
 # Nb de crabes moyen par année de chaque catégorie en fonction du temps (corrigé par l'effort de pêche)
 df_global_long1 <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males,total_crabs), names_to = "crab_category", values_to = "count") # on passe au format long, préférable pour ggplot
@@ -373,11 +405,11 @@ summary(mod_temp_sal_survey)
 
 # et sur les oeufs
 df_global_short <- df_global[1:11,]
-mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy, data = df_global_short) # * quand que salinité sinon rien quand aussi température
+mod_temp_sal_eggs <- lm(estim_eggs_per_adu_f ~ sal_moy + temp_moy_été, data = df_global_short) # * quand que salinité sinon rien quand aussi température
 par(mfrow=c(2,2))
 plot(mod_temp_sal_eggs)
 shapiro.test(mod_temp_sal_eggs$residuals)
-summary(mod_temp_sal_eggs)
+summary(mod_temp_sal_eggs) # temp_été * ou sal_moy
 
 
 ## SEX-RATIO
@@ -392,11 +424,19 @@ shapiro.test(mod_sex_ratio_temp_sal$residuals)
 
 # normalisation des données
 sex_ratio_norm <- bestNormalize(df_global$sex_ratio, out_of_sample = FALSE)
-mod_sex_ratio_temp_sal <- lm(sex_ratio_norm$x.t ~ temp_moy + sal_moy, data = df_global)
+mod_sex_ratio_temp_sal <- lm(sex_ratio_norm$x.t ~ temp_moy + sal_moy data = df_global)
 par(mfrow=c(2,2))
 plot(mod_sex_ratio_temp_sal)
 shapiro.test(mod_sex_ratio_temp_sal$residuals)
 summary(mod_sex_ratio_temp_sal) # sex-ratio ne dépend pas de la salinité, ni de la température
+
+
+## TAILLE DES CRABES EN FONCTION DE SAL ET TEMP
+mod_taille_temp_sal <- lm(length_mm ~ temp_moy + sal_moy + sex, data = dstns_long)
+par(mfrow=c(2,2))
+plot(mod_taille_temp_sal)
+shapiro.test(mod_taille_temp_sal$residuals)
+summary(mod_taille_temp_sal)
 
 
 ## FLEET 
