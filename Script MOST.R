@@ -483,7 +483,10 @@ ggplot(dstns, aes(x = as.factor(year), y = count_males))+
 
 ggplot(dstns_simplified_long, aes(x = year, y = length_moy, color = category))+ # Longueur moyenne augmente de manière significative avec le temps
   geom_point()+
-  geom_smooth(method = "lm", se = F)
+  geom_smooth(method = "lm", se = F)+
+  labs(x = "Année", y = "Longueur moyenne (en mm)")+
+  scale_colour_manual(values = c("coral1", "deepskyblue"), labels = c("Femelles", "Mâles"))
+
 summary(lm(length_moy_M ~ year, data = dstns_simplified)) # *
 summary(lm(length_moy_F ~ year, data = dstns_simplified)) # **
 
