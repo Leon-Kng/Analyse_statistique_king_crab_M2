@@ -429,7 +429,29 @@ plot(mod_taille_temp_sal)
 summary(mod_taille_temp_sal) # R² faible donc bcp de variance pas expliquée, on peut justifier cela par le fait que les différentes classes d'âges sont fusionnées
 
 
-# On va tester si température seule a un effet car graphiquement on ne le voit pas 
+# Call:
+#   lm(formula = length_mm ~ temp_moy + sal_moy + sex, data = dstns_long)
+# 
+# Residuals:
+#   Min      1Q  Median      3Q     Max 
+# -98.103 -13.387   0.585  14.824  81.172 
+# 
+# Coefficients:
+#   Estimate Std. Error t value Pr(>|t|)    
+# (Intercept) 1016.74501    8.35462   121.7   <2e-16 ***
+#   temp_moy      -2.90902    0.02857  -101.8   <2e-16 ***
+#   sal_moy      -27.67978    0.26201  -105.6   <2e-16 ***
+#   sexM          16.44091    0.05267   312.2   <2e-16 ***
+#   ---
+#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+# 
+# Residual standard error: 21.95 on 712480 degrees of freedom
+# (24636 observations effacées parce que manquantes)
+# Multiple R-squared:  0.1467,	Adjusted R-squared:  0.1467 
+# F-statistic: 4.082e+04 on 3 and 712480 DF,  p-value: < 2.2e-16
+
+
+# On va tester si température seule a un effet car graphiquement on ne le voit pas, pas à inclure dans le rapport
 # REGRESSION LINEAIRE - Longueur en fonction de la température moyenne de l'année (uniquement mâles)
 dstns_long_M <- dstns_long |> 
   filter(sex == "M")
@@ -437,4 +459,3 @@ mod_taille_temp_M <- lm(length_mm ~ temp_moy, data = dstns_long_M)
 par(mfrow=c(2,2))
 plot(mod_taille_temp_M)
 summary(mod_taille_temp_M)
-
