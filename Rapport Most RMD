@@ -513,9 +513,9 @@ plot_sal_year<-ggplot(salinity, aes(x = year, y = salinity, color = saison))+
 grid.arrange(plot_temp_year, plot_sal_year, ncol = 2, nrow = 1)
 ```
 
-L'objectif de notre étude est d'évaluer l'existence d'une corrélation statistiquement significative entre la température des eaux autour des îles Kodiak et  les variables temporelles (année et saison), et leurs interactions potentielles. De même pour la salinité. 
+L'objectif de notre étude est d'évaluer l'existence d'une corrélation statistiquement significative entre la température des eaux autour des îles Kodiak et  les variables temporelles (année et saison), et leurs interactions potentielles. De même pour la salinité. Pour cela nous avons réalisé des analyses de la covariance (ANCOVA) :
 
-```{r Ancova - température en fonction de l’année et de la saison (avec et sans interaction), echo=T}
+```{r ANCOVA - température en fonction de l’année et de la saison (avec et sans interaction), echo=T}
 # avec interaction
 ancova_temp_inter <- lm(temp ~ year*saison, data = celsius)
 # sans interaction
@@ -554,7 +554,7 @@ où:
     - D'espérance égale à 0;
     - De variance égale à $\sigma^2$, qui est un paramètre inconnu;
     - De loi normale.
-```{r Test de l’ancova,echo=T}
+```{r Test de l’ANCOVA,echo=T}
 anova(ancova_temp)
 ```
 Dans l'analyse effectuée avec R pour notre modèle, nous observons que les variables 'année' et 'saison' ont un impact significatif sur la température. Ceci est démontré par des valeurs de p extrêmement basses (pour l'année : `p-value = 0,0002174` et pour la saison : `p-value = 3,348e-16`). Ces résultats suggèrent une variation saisonnière claire de la température. De plus, ils indiquent une tendance progressive à l'augmentation de la température au fil des années. Cette tendance pourrait être potentiellement liée au changement climatique, bien que des études supplémentaires soient nécessaires pour établir une relation causale solide entre ces observations et le changement climatique global.
@@ -562,7 +562,7 @@ L'estimation ponctuelle pour le coefficient X, tel que défini dans notre modèl
 
 
 ### Salinité
-```{r Ancova - salinité en fonction de l’année et de la saison (avec interaction),echo=T,fig.show='hide'}
+```{r ANCOVA - salinité en fonction de l’année et de la saison (avec interaction),echo=T,fig.show='hide'}
 # avec interaction
 ancova_salinity_inter <- lm(salinity ~ year*saison, data = salinity)
 ```
@@ -580,12 +580,12 @@ salinity_normalized <- salinity |>
   mutate(salinity_norm = boxcox(salinity)$x.t,
          lambda = boxcox(salinity)$lambda)
 ```
-On reformule donc deux modèles d’ancova avec les données normalisées et on les teste à nouveau.
-```{r Ancova - salinité normalisée en fonction de l’année et de la saison (avec et sans interaction),echo=T,results='hide'}
+On reformule donc deux modèles d’analyse de la variance (ANCOVA) avec les données normalisées et on les teste à nouveau.
+```{r ANCOVA - salinité normalisée en fonction de l’année et de la saison (avec et sans interaction),echo=T,results='hide'}
 ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized) # avec interaction 
 ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity_normalized) # sans interaction normalisée
 ```
-```{r Test des hypothèses des 2 ancova (avec ou sans interaction), echo=F,results='hide',fig.show='hide'}
+```{r Test des hypothèses des 2 ANCOVA (avec ou sans interaction), echo=F,results='hide',fig.show='hide'}
 shapiro.test(ancova_salinity_inter_normalized$residuals)
 shapiro.test(ancova_salinity_normalized$residuals)
 par(mfrow=c(2,2))
@@ -616,25 +616,26 @@ où:
     - De variance égale à $\sigma^2$, qui est un paramètre inconnu;
     - De loi normale.
 
-```{r Test de l’ancova salinité, echo=T}
+```{r Test de l’ANCOVA salinité, echo=T}
 anova(ancova_salinity_normalized) 
 ```
-Pour ce modèle, les résultats de la sortie R révèle que la variable 'année' a un effet statistiquement significatif sur la salinité (`p-value de 0.001059`). En revanche, la variable 'saison' ne montre pas d’effet significatif (`p-value de 0.991987`). Ces résultats suggèrent que la salinité varie en fonction des années, ce qui pourrait être une conséquence du changement climatique. Cependant, il n'y a pas de variation significative de la salinité d'une saison à l'autre selon les données analysées.
+Pour ce modèle, les résultats de la sortie R révèlent que la variable 'année' a un effet statistiquement significatif sur la salinité (`p-value de 0.001059`). En revanche, la variable 'saison' ne montre pas d’effet significatif (`p-value de 0.991987`). Ces résultats suggèrent que la salinité varie en fonction des années, ce qui pourrait être une conséquence du changement climatique. Cependant, il n'y a pas de variation significative de la salinité d'une saison à l'autre selon les données analysées.
 
 ## Question 2
 
 # Discussion / Ouverture
-Le changement climatique est un problème d'une très grande importance, dont l'impact est de nos jours bien identifié. L'augmentation des températures et de la salinité des océans en fait partie et impacte grandement l'écologie des espèces marines. C'est pourquoi, dans cette étude, nous avons voulu montrer que les îles Kodiak sont aussi touchées par ce changement des conditions abiotiques et qu'elles ont un impact sur le King Crab, une ressource importante pour la pêche dans cette zone.
+Le changement climatique est un problème majeur de notre siècle, dont l'origine anthropique est désormais prouvée. L'augmentation des températures des océans en fait partie et impacte grandement l'écologie des espèces marines. C'est pourquoi, dans cette étude, nous avons voulu montrer que les îles Kodiak sont également touchées par ce changement des conditions abiotiques et qu'elles ont un impact sur le crabe royal du Kamtchatka, une ressource importante pour la pêche dans cette zone.
 
-La première partie de notre étude a clairement montré une augmentation des températures et de la salinité de cette zone entre 1973 et 1986. Que ce soit au sein des saisons ou entre les années, cette augmentation existe et modifie donc complètement le milieu de vie.
+La première partie de notre étude a clairement montré une augmentation significative des températures au cours des années et avec des variations au cours des saisons et une diminution significative de la salinité de cette zone entre 1973 et 1986. 
 
-C'est pourquoi nous avons ensuite cherché à voir si ces modifications impactent le nombre de crabes, leur taille ou leur nombre d'œufs.
+C'est pourquoi nous avons ensuite cherché à observer si ces modifications ont un impact significatif sur la taille des crabes.
 
-Il est intéressant de noter que les observations ont été faites il y a 40 ans ou plus, et que la situation a probablement beaucoup évolué. Il serait donc intéressant de continuer la prise de données et de les comparer. De plus, nous n'avons pas abordé ici l'impact de la pêche. On observe que le prix augmente lorsque la population diminue par effet de rareté. Cependant, il semble que l'effort de pêche ne diminue pas et que cela reste rentable. Aussi, on observe des chutes importantes des populations qui suivent une augmentation de la pêche, ce qui pourrait supposer d'une forte impact de cette dernière. Le simple fait que seuls les mâles sont pêchés (car les recruits ne concernent que les mâles) peut impacter le sex-ratio, et couplé à l'impact de l'environnement, cela pourrait être la cause de la décroissance des populations.
+Il est intéressant de noter que les observations ont été faites il y a 40 ans ou plus, et que la situation a probablement beaucoup évolué depuis. Il serait donc intéressant de continuer la les échantillonnages et de les comparer. De plus, nous n'avons pas abordé ici l'impact de la pêche qui peut être très intéressant.
+C'est un problème multifactoriel qui nécessite plus d'approfondissement pour être compris et pour permettre une conservation du milieu et de cette espèce.
 
-C'est un problème multifactoriel qui nécessite plus d'approfondissement pour être compris et pour permettre une conservation du milieu et de cette ressource.
 
-Il serait intéressant d’avoir le district en donnée supplémentaire à nos ancova sur la température et la salinité pour voir si on a des secteurs plus ou moins protégés par l’île des courants. 
+Il serait utile d'ajouter le district comme variable supplémentaire dans nos analyses de covariance portant sur la température et la salinité, afin d'examiner si certains secteurs sont plus ou moins influencés par les courants autour de l'île.
+
 
 
 
