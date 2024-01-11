@@ -16,6 +16,13 @@ header-includes: \renewcommand{\contentsname}{Table des matières}
 encoding: "UTF-8"
 ---
 
+<style>
+  body {
+    font-size: 14px; /* Changer cette valeur en fonction de la taille de police souhaitée */
+  }
+</style>
+
+
 ```{r setup, include=FALSE}
 # Ce code, non inclus dans la sortie (car on a spécifié include = FALSE)
 # permet de spécifier toutes les options par défaut pour les chunks
@@ -26,24 +33,25 @@ knitr::opts_chunk$set(echo = FALSE, # Ici, par défaut, les chunks seront invisi
                       fig.height = 6, 
                       message = FALSE, # Les messages de R ne sont pas sortis
                       warning = FALSE) # Les avertissement de R ne sont pas sortis
+knitr::opts_knit$set(root.dir = "~/cours/M2/MOST/projet/KingCrab-20231110") # pour rendre le working directory persistant d'un chunk de code à l'autre
 ```
 
-```{r packages_utilises}
-# Liste des package utilisés dans votre document (à compléter ou élaguer!)
-library(dplyr) # Pour le %>% 
-library(ggplot2) # Pour les graphiques
-library(tidyr)
-library(esquisse)
+```{r initialisation}
+rm(list=ls())
+
+# Liste des package utilisés 
+library(ggplot2) 
+library(tidyverse)
 library(bestNormalize)
+library(RColorBrewer)
 library(plotly)
 library(gridExtra)
 library(gganimate)
+
 ```
 
-```{r chargement des données, echo=F}
-rm(list=ls())
-setwd("~/cours/M2/MOST/projet/KingCrab-20231110")
-### CHARGEMENT DES DONNEES ##################
+```{r Chargement des données, echo=F}
+
 survey <- read.table("survey", stringsAsFactors=T)
 survey <-rename(survey,year = V1, fishing_district = V2,Station_ID=V3,pots_fished=V4,latitude_halfway_pot=V5,longitude_halfway_pot=V6,pre_recruit_4=V7,pre_recruit_3=V8,pre_recruit_2=V9,pre_recruit_1=V10,recruit_males=V11,post_recruit=V12,juv_fem=V13,adu_fem=V14)
 
@@ -72,8 +80,7 @@ fullness <- read.table("fullness",stringsAsFactors=T)
 fullness <-rename(fullness, year= V1, size_mm= V2,fullness0=V3,fullness1_29=V4,fullness30_59=V5,fullness60_89=V6,fullness90_100=V7)
 
 ```
-```{r modifcation des données, echo=F}
-
+```{r Modifcation des données, echo=F}
 # Survey
 survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir une année
 survey$year <- as.numeric(survey$year)
@@ -118,11 +125,14 @@ survey_simplified <- survey |>
             pre_recruit_3_pp = mean(pre_recruit_3_per_pot),
             pre_recruit_4_pp = mean(pre_recruit_4_per_pot),
             total_crabs_pp = mean(total_crabs_per_pot)
-  ) 
+  ) |> 
+  mutate(sex_ratio = (juv_males + legal_males)/(juv_fem + adu_fem))
 
 survey_long_category <- survey |> 
   select(year, legal_males_per_pot, adu_fem_per_pot, juv_fem_per_pot, juv_males_per_pot) |> 
   pivot_longer(cols = c(legal_males_per_pot, adu_fem_per_pot, juv_fem_per_pot, juv_males_per_pot), names_to = "crab_category", values_to = "nb_crabs_per_pot")
+
+survey_long_category$crab_category <- str_remove(survey_long_category$crab_category, "_per_pot")
 
 # Celsius
 celsius$year <- paste0("19", celsius$year) # ajout de 19 devant les nb pour avoir une année
@@ -239,6 +249,21 @@ df_global <- left_join(df_global, eggs, by = "year")
 dstns$year <- paste0("19", dstns$year)
 dstns$year <- as.numeric(dstns$year)
 
+dstns_long <- dstns |>
+  mutate(count_F = count_juv_f + count_adu_f,
+         count_M = count_males) |> 
+  select(-count_juv_f, -count_adu_f, -count_males) |> 
+  pivot_longer(
+    cols = starts_with("count"),
+    names_to = "sex",
+    values_to = "count"
+  ) |>
+  mutate(sex = ifelse(sex == "count_F", "F", "M")) |>
+  uncount(count)
+
+dstns_long <- left_join(dstns_long, celsius_more_simplified, by="year")
+dstns_long <- left_join(dstns_long, salinity_more_simplified, by="year")
+
 dstns_sum <- dstns |>
   group_by(year) |>
   mutate(count_f = count_juv_f + count_adu_f)
@@ -253,9 +278,12 @@ dstns_simplified <- dstns_sum|>
 dstns_simplified_long <- dstns_simplified |> 
   select(-length_moy_adu_F, - length_moy_juv_F) |> 
   pivot_longer(cols = -year, 
-               names_to = "category", 
+               names_to = "sex", 
                names_prefix = "length_moy_",
                values_to = "length_moy")
+
+dstns_simplified_long <- left_join(dstns_simplified_long, celsius_more_simplified, by="year")
+dstns_simplified_long <- left_join(dstns_simplified_long, salinity_more_simplified, by="year")
 
 df_global <- left_join(df_global, dstns_simplified, by = "year")
 
@@ -274,61 +302,44 @@ fullness_simplified <- fullness |>
     count_fullness1_29 = sum(fullness1_29),
     count_fullness30_59 = sum(fullness30_59),
     count_fullness60_89 = sum(fullness60_89),
-    count_fullness90_100 = sum(fullness90_100)  )
+    count_fullness90_100 = sum(fullness90_100)) 
 
 df_global <- left_join(df_global, fullness_simplified, by = "year")
 
+df_global_long <- pivot_longer(df_global, cols = c(legal_males, adu_fem, juv_fem, juv_males,total_crabs), names_to = "crab_category", values_to = "count")
+
+
+# Carte île Kodiak
+survey_map <- survey
+survey_map$year <- as.factor(survey_map$year)
+survey_map$legal_males <- survey_map$post_recruit + survey_map$recruit_males
+survey_map$Total_crabs <- rowSums(survey_map[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
+survey_map_count <- survey_map |>
+  group_by(year) |>
+  summarise(Nb_legal_males = sum(legal_males))
+survey_map$fishing_district <- as.factor(survey_map$fishing_district)
+
 ```
 
-# Introduction
+## Introduction
+### King Crab
+#### Ecologie
 
-## King Crab
+Le crabe royal du Kamtchatka, également connu sous le nom de red king crab, est une espèce de crustacé décapode appartenant à la famille des Lithodidae. On les trouve dans les eaux froides de l'océan Pacifique Nord, principalement dans les régions proches de l'Alaska, de la Russie et du Japon. Ils préfèrent les fonds marins riches en nutriments à des profondeurs allant jusqu'à plusieurs centaines de mètres. Ces crustacés ont une carapace dure et massive, pouvant atteindre une envergure importante. Ils se caractérisent par leurs pinces robustes et puissantes, utilisées pour la capture de proies et la défense. Leur régime alimentaire varie, mais il inclut généralement des mollusques, des petits poissons et d'autres organismes marins.
 
-### Ecologie
-Le King Crab d'Alaska, également connu sous le nom de crabe royal, est une espèce de crustacé décapode appartenant à la famille des Lithodidae.Ils se trouvent dans les eaux froides de l'océan Pacifique Nord, principalement dans les régions proches de l'Alaska, de la Russie et du Japon. Ils préfèrent les fonds marins riches en nutriments à des profondeurs allant jusqu'à plusieurs centaines de mètres.Ces crustacés ont une carapace dure et massive, pouvant atteindre une envergure importante. Ils se caractérisent par leurs pinces robustes et puissantes, utilisées pour la capture de proies et la défense. Leur régime alimentaire varie, mais il inclut généralement des mollusques, des petits poissons et d'autres organismes marins.
 
-### Pèche
- Le King Crab d'Alaska est célèbre pour sa chair délicate et savoureuse, ce qui en fait une espèce prisée dans le secteur de la pêche commerciale. La pêche au crabe royal est une activité économiquement importante pour les communautés côtières de l'Alaska, de la Russie et d'autres régions où ces crustacés sont abondants. Ils sont exportés dans le monde entier pour répondre à la demande croissante de fruits de mer de qualité. La chair ferme et sucrée du King Crab en fait un produit recherché sur le marché international. De ce faite,une gestion durable de la pêche au crabe royal est cruciale pour préserver les populations et les écosystèmes marins. Des mesures de conservation strictes sont mises en œuvre pour assurer la durabilité de cette ressource précieuse.
+#### Pèche
+ Le King Crab d'Alaska est célèbre pour sa chair délicate et savoureuse, ce qui en fait une espèce très prisée dans le secteur de la pêche commerciale. La pêche au crabe royal est une activité économiquement importante pour les communautés côtières de l'Alaska, de la Russie et d'autres régions où ces crustacés sont abondants. Ils sont exportés dans le monde entier pour répondre à la demande croissante de fruits de mer de qualité. La chair ferme et sucrée du King Crab en fait un produit recherché sur le marché international. De ce fait, une gestion durable de la pêche au crabe royal est cruciale pour préserver les populations et les écosystèmes marins. Des mesures de conservation strictes sont mises en œuvre pour assurer la durabilité de cette ressource précieuse. Pour pouvoir instaurer un quota de pêche chaque année, le Département de la Pêche et du Jeu de l'Alaska réalise un important échantillonnage des crabes dans les zones de pêche.
  
-## Zone d'étude
-La zone d'étude dans laquelle ont été collectées les données à notre disposition est l'archipel de Kodiak, situé au sud de l'Alaska, au nord de l'océan Pacifique. Les îles Kodiak s'étendent sur environ 9 300 kilomètres carrés avec une topographie variée, comprenant des montagnes, des fjords, des rivières et des vallées. La pêche y joue un rôle essentiel dans l'économie. La région est particulièrement connue pour sa pêche au saumon, au crabe et à d'autres fruits de mer.
+### Zone d'étude
+La zone d'étude dans laquelle ont été collectées les données mises à notre disposition est l'archipel de Kodiak, situé au sud de l'Alaska, au nord de l'océan Pacifique. Les îles Kodiak s'étendent sur environ 9 300 kilomètres carrés avec une topographie variée, comprenant des montagnes, des fjords, des rivières et des vallées. La pêche y joue un rôle essentiel dans l'économie, la région est particulièrement connue pour sa pêche au saumon, au crabe et à d'autres fruits de mer.
 
-La carte ci-dessous montre l'île et l'emplacement des différents points de collecte en fonction des années (données provenant du fichier "survey"). L'île est séparée en quatre districts dans différentes parties de l'île.
-
-```{r Carte, echo = F}
-setwd("~/cours/M2/MOST/projet/KingCrab-20231110")
+La carte ci-dessous représente l'île et l'emplacement des différents points de collecte en fonction des années (données provenant du fichier `survey` et `map`). Les zones de pêches sont organisées en quatre districts autour de l’île. Chaque point représente un échantillonnage (une ligne de pêche composées de plusieurs casiers), la taille des points est proportionnelle au nombre de crabes échantillonnés.
 
 
-##### OUVERTURE ET MODIFICATION DES DONNEES #########################################
-
-### Chargement des données ###
-survey <- read.table("survey", stringsAsFactors=T)
-survey <-rename(survey,year = V1, fishing_district = V2,Station_ID=V3,pots_fished=V4,latitude_halfway_pot=V5,longitude_halfway_pot=V6,pre_recruit_4=V7,pre_recruit_3=V8,pre_recruit_2=V9,pre_recruit_1=V10,recruit_males=V11,post_recruit=V12,juv_fem=V13,adu_fem=V14)
-
-kodiak <- read.table("kodiak",stringsAsFactors=T)
-kodiak <-rename(kodiak, latitude= V1, longitude = V2)
-
-### Modification des données
-survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir une année
-survey$year <- as.factor(survey$year)
-survey$legal_males <- survey$post_recruit + survey$recruit_males
-survey$Total_crabs <- rowSums(survey[, 7:14], na.rm = TRUE) # calcul du nb total de crabes attrapés
-survey_count <- survey %>%
-  group_by(year) %>%
-  summarise(Nb_legal_males = sum(legal_males))
-survey$fishing_district <- as.factor(survey$fishing_district)
-
-
-
-
-##### METHODE PLOTLY ######################################################################################################
-
-# Définir les limites x et y pour conserver les mêmes échelles sur chaque graphique
-x_limits <- range(-kodiak$longitude)
-y_limits <- range(kodiak$latitude)
-
+```{r Carte île Kodiak, echo = F, out.width = "75%", out.height = "75%"}
 # Créer un graphique de base avec Plotly
-base_plot <- plot_ly() %>%
+base_plot <- plot_ly() |>
   add_trace(
     data = kodiak,
     x = ~-longitude,
@@ -337,28 +348,29 @@ base_plot <- plot_ly() %>%
     mode = 'lines',
     line = list(color = 'black'),
     showlegend = FALSE
-  ) %>%
+  ) |>
   layout(
     xaxis = list(title = "Longitude"),
     yaxis = list(title = "Latitude"),
-    title = "Carte interactive des îles de Kodiak"
+    title = "Carte de l'île Kodiak représentant 
+les échantillonnages de crabes de 1973 à 1986"
   )
 
 # Créer une liste pour stocker les données de chaque année
-data_by_year <- lapply(unique(survey$year), function(yr) {
-  survey_year <- subset(survey, year == yr)
+data_by_year <- lapply(unique(survey_map$year), function(yr) {
+  survey_map_year <- subset(survey_map, year == yr)
   list(
-    x = -survey_year$longitude_halfway_pot,
-    y = survey_year$latitude_halfway_pot,
-    size = survey_year$Total_crabs,
-    color = survey_year$fishing_district,
-    text = paste("Année: ", yr, "<br>Total Crabs: ", survey_year$Total_crabs)
+    x = -survey_map_year$longitude_halfway_pot,
+    y = survey_map_year$latitude_halfway_pot,
+    size = survey_map_year$Total_crabs,
+    color = survey_map_year$fishing_district,
+    text = paste("Année: ", yr, "<br>Nombre de crabes échantillonnés: ", survey_map_year$Total_crabs)
   )
 })
 
 # Ajouter les données de chaque année au graphique de base pour chaque frame
 for (i in seq_along(data_by_year)) {
-  base_plot <- base_plot %>%
+  base_plot <- base_plot |>
     add_trace(
       data = data_by_year[[i]],
       x = ~x,
@@ -368,63 +380,87 @@ for (i in seq_along(data_by_year)) {
       size = ~size,
       color = ~color,
       text = ~text,
-      frame = unique(survey$year)[i]
+      frame = unique(survey_map$year)[i]
     )
 }
 
-base_plot %>%
-  animation_opts(frame = 500, redraw = TRUE, transition = 0) %>%
+base_plot |>
+  animation_opts(frame = 500, redraw = TRUE, transition = 0) |>
   animation_slider(
     currentvalue = list(prefix = "Année: "),
     steps = lapply(
       seq_along(data_by_year),
       function(i) list(
-        label = unique(survey$year)[i],
+        label = unique(survey_map$year)[i],
         method = "animate",
         args = list(list("frame", list(duration = 0)), list("transition", list(duration = 0)))
       )
     )
-  ) %>%
+  ) |>
   layout(
     hovermode = "closest", # Afficher les informations au survol du point le plus proche
     hoverinfo = "text"     # Afficher les informations définies dans 'text' au survol
   )
+
 ```
-## Jeux de donnée
+### Jeux de donnée
 
-### Provenance
-Tous les ensembles de données, sauf la salinité et la température, ont été fournis par le Département de la Pêche et du Jeu de l'Alaska, 211 Mission Road, Kodiak, AK 99615. Les données de salinité et de température proviennent de Tom Royer, Institut des Sciences Marines, Université d'Alaska, Fairbanks, AK 99775-1080. Il y a aussi des statistiques sur la flotte de pêche et les captures commerciales, pour chaque année entre 1960 et 1982, ainsi que des données de captures commerciales pour la période 1960-1982, réparties par district (les 4 zones sur la carte).
+#### Provenance des données
+Tous les ensembles de données, sauf la salinité (`salinity`) et la température (`celsius`), ont été fournis par le Département de la Pêche et du Jeu de l'Alaska. Les données de salinité et de température proviennent de Tom Royer de l’Institut des Sciences Marines à l’Université d'Alaska à Fairbanks,. Il y a aussi des statistiques sur la flotte de pêche et les captures commerciales (`fleet` et `catch`), pour chaque année entre 1960 et 1982. Certaines données de pêche sont réparties par district (les 4 zones colorées sur la carte). Cette période est intéressante car elle entoure un événement majeur qui est le tremblement de terre de 1964 qui a touché l'île avec un séisme de magnitude 9.1. Ainsi, ces données ont peut-être été prises dans l'optique de surveiller la zone suite à cet incident.
 
-### Modification apporter
+#### Modifications apportées
+Avant toute chose, de nombreuses modifications ont été nécessaires pour rendre les données exploitables. Il a fallu ranger, organiser et transformer les données afin de pouvoir les visualiser graphiquement et les analyser statistiquement. 
+Nous avons également regroupé le plus possible l’ensemble des jeux de donnée et calculé des moyennes annuelles lorsque les données disponibles étaient exprimées par année. Nous avons également ajouté des saisons aux mesures de salinité et de température afin de prendre en compte la variation de température pendant ces périodes.
 
-## Observation préliminaire
-```{r graphique préliminiare, echo=F}
+De nouvelles variables sont également créées, telles que le nombre total de crabes identifiés dans le document `survey `(une simple somme de tous les crabes identifiés sur une année) ou encore un regroupement de tous les crabes mâles dits "pre-recruits", définis comme des juvéniles qui ne peuvent pas être légalement pêchés.
 
-# Votre code de base pour créer le tracé ggplot pour chaque variable avec courbes de tendance
-plot1 <- ggplot(df_global, aes(x = year, y = total_crabs)) +
+Afin de prendre en compte l’effort de pêche qui peut varier, nous avons divisé le nombre de crabes de chaque catégorie par le nombre de casiers utilisés pour chaque échantillon de `survey`. Nous avons ensuite calculé pour chaque année dans un premier temps la somme de ces valeurs pour obtenir un nombre de crabes corrigés par l’effort de pêche puis une moyenne de crabes par casiers (`per_pot`). Une simple régression linéaire nous a permis de déterminer que ces deux variables sont corrélées de manière très significative et ainsi que nous pourrions utiliser l’une des deux variables sans avoir de différence importante dans les résultats.
+
+```{r Test de méthode de correction, echo = F, eval = F}
+
+ggplot(df_global, aes(x = legal_males, y = legal_males_pp))+ # on regarde si on a une différence entre le nb de crabes corrigés et le nb de crabes moyen par piège
+  geom_point()+
+  geom_smooth(method = "lm", color = "red")+
+  labs(x = "Nombre de mâles pouvant être légalement pêchés", y = "Nombre de mâles pouvant être légalement pêchés moyen par piège")
+test <- lm(legal_males~legal_males_pp, data = df_global)
+summary(test) # on remarque que c'est très fortement correlé donc pas de grosse différence si on choisit l'un ou l'autre
+
+```
+
+
+### Observations préliminaires
+Dans l'optique de mieux comprendre nos données et de voir l'évolution des différents paramètres au cours du temps, nous avons procédé à quelques observations préliminaires. Cela permet de dégager les tendances observées dans nos données et ainsi de nous poser les bonnes questions puis d'y répondre à l'aide de modèles statistiques. Ci-dessous vous trouverez donc quelques graphiques représentant des données intéressantes.
+
+```{r Graphique préliminiare, echo=F}
+
+
+plot_count_year <-ggplot(df_global_long, aes(x = year, y = count, color = crab_category, group = crab_category)) +
   geom_point() +
-  geom_smooth(method = "lm", se = FALSE, color = "black") +  # Ajouter une courbe de tendance linéaire
-  labs(title = "Nombre total de crabe") +
-  theme(axis.title.y = element_blank(),plot.title = element_text(hjust = 0.5))  # Supprimer le nom de l'axe des abscisses
+  geom_line() +
+  labs(title = paste("Nombre de crabes échantillonnés par année \n (corrigé par l'effort d'échantillonnage)"), x = "Année", y = "Nombre de crabes échantillonnés (corrigé par l'effort d'échantillonnage)", color = "Classe d'âge et sexe") +
+  scale_colour_manual(values =  brewer.pal(5, "Set1"), labels = c("Femelles adultes", "Femelles juvéniles", "Mâles juvéniles", "Mâles légaux", "Total")) +
+  theme(axis.title.y = element_blank(), plot.title = element_text(hjust = 0.1)) 
 
-plot2 <- ggplot(dstns_simplified_long, aes(x = year, y = length_moy, color = category))+ # Longueur moyenne augmente de manière significative avec le temps
+
+
+plot_len_year <- ggplot(dstns_simplified_long, aes(x = year, y = length_moy, colour = sex)) +
   geom_point() +
-  labs(title = "Taille des Crabes mâles et femelle
-       au cours du temps") +
-  geom_smooth(method = "lm", se = F)+
-  theme(axis.title.y = element_blank(),plot.title = element_text(hjust = 0.1)) 
+  labs(title = "Taille des Crabes mâles et femelles au
+       cours du temps") +  # Correction ici
+  geom_smooth(method = "lm", se = FALSE) +
+  theme(axis.title.y = element_blank(), plot.title = element_text(hjust = 0.1))
 
-# Création du graphique avec ggplot2
-plot3<-df_global %>%
- filter(year >= 1973L & year <= 1982L) %>%
+
+plot_price_year < -df_global |>
+ filter(year >= 1973L & year <= 1982L) |>
  ggplot() + aes(x = year, y = price_pound) +
-  geom_point() +  # Ajout des points
-  geom_smooth(method = "lm", se = F, color = "orange") +
+  geom_point()+
+  geom_line() +  # Ajout des lignes
   labs(x = "Année", y = "Prix par livre", title = "Évolution du prix par livre au fil des années") +
   theme(axis.title.y = element_blank(), plot.title = element_text(hjust = 0.5))
 
-plot4<-fleet %>%
-  filter(year >= 1964L & year <= 1982L) %>%
+plot_pot_lifted_year <- fleet |>
+  filter(year >= 1964L & year <= 1982L) |>
   ggplot() +
   aes(x = year, y = total_pot_lifts) +
   geom_point(shape = "circle", size = 1.5, colour = "#112446") +
@@ -435,31 +471,35 @@ plot4<-fleet %>%
   
 
 # Afficher les graphiques dans une disposition de grille (2 lignes, 2 colonnes)
-grid.arrange(plot1, plot2, plot3,plot4, ncol = 2, nrow = 2)
+grid.arrange(plot_count_year , plot_len_year , plot_price_year ,plot_pot_lifted_year , ncol = 2, nrow = 2)
 
 ```
 
-## Problématique et hypothèse
-Suite à ces observation, plusieur question nous sont apparu.
-
-Dans un premier temps, nous veront si les variation de température et de salinité liée au rechauffement climatique sont significative. 
-
-Puis nous veront si ces paramètres abiotique influence la biologie des King crabe, leur taille, leur nombre ou leur nombre d’oeuf. 
-
-Enfin, essayeront de voir si l’effort de peche augment et si cela peut aussi impacter les population de crabe dans les îles Kodiak
+La population totale de crabes subit de fortes variations au cours du temps avec des pics importants et une décroissance critique entre 1980 et 1986, La taille des crabes, qu'ils soient mâles ou femelles, semble être en augmentation, malgré une période de diminution entre 1975 et 1978. Quand au prix des crabes à la livre, il subit une très forte augmentation à partir des années 1980, ce qui correspond à la raréfaction de la ressource due à la diminution de la population observée plus tôt sur cette période là. Enfin on remarque que 
 
 
-# Résultat
+### Problématiques
+Suite à ces observations, plusieurs questions nous sont apparues.
 
-```{r, echo=F,out.height="50%"}
-plot5<-ggplot(celsius, aes(x = year, y = temp, color = saison))+
+Question 1 : Comment l'habitat du crabe royal du Kamtchatka évolue-t-il au fil du temps ? 
+
+Question 2 : Ces modifications environnementales affectent-elles la taille des crabes royaux du Kamtchatka ? 
+
+
+## Résultats
+### Question 1
+#### Température
+On veut donc tester si des variables abiotiques comme la température et la salinité des eaux autour des îles Kodiak varient avec le temps. Tout d’abord visualisons ces données graphiquement :
+
+```{r Graphiques température et salinité en fonction de l\'année et de la saison, echo=F}
+plot_temp_year<-ggplot(celsius, aes(x = year, y = temp, color = saison))+
   geom_point()+
   labs(title = "Température (°C)")+
   labs(x = "Année", y = "Température de l'eau à 100m de profondeur (en °C)", color = "Saison")+
   geom_smooth(method="lm", se=F)+
 theme(legend.position = "none",axis.title.y = element_blank(),plot.title = element_text(hjust = 0.5))
 
-plot6<-ggplot(salinity, aes(x = year, y = salinity, color = saison))+
+plot_sal_year<-ggplot(salinity, aes(x = year, y = salinity, color = saison))+
   geom_point()+
     labs(title = "Salinité (ppt)")+
   labs(x = "Année", y = "Salinité de l'eau à 100m de profondeur (en parties par milliers)", color = "Saison")+
@@ -467,26 +507,127 @@ plot6<-ggplot(salinity, aes(x = year, y = salinity, color = saison))+
         legend.justification = c(1, 0),
         axis.title.y = element_blank(),
         plot.title = element_text(hjust = 0.5))+
-  geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la salinté sur les variables de survey
-grid.arrange(plot5, plot6, ncol = 2, nrow = 1)
+  geom_smooth(method="lm", se=F) 
+
+grid.arrange(plot_temp_year, plot_sal_year, ncol = 2, nrow = 1)
 ```
 
-Pour tout $i$ allant de 1 à 13, et $j$ allant de 1 à 4  on suppose que $y_{ij}$ est la réalisation d'une variable aléatoire $Y_{ij}$ telle que:
+L'objectif de notre étude est d'évaluer l'existence d'une corrélation statistiquement significative entre la température des eaux autour des îles Kodiak et  les variables temporelles (année et saison), et leurs interactions potentielles. De même pour la salinité. 
 
-$$Y_{ij} = \beta_{0}+\beta_{1}*\alpha_{i} + \beta_{2}*\gamma_{j}+\beta_{3}*x_{ij} + E_{ijk}$$
+```{r Ancova - température en fonction de l’année et de la saison (avec et sans interaction), echo=T}
+# avec interaction
+ancova_temp_inter <- lm(temp ~ year*saison, data = celsius)
+# sans interaction
+ancova_temp <- lm(temp ~ year + saison, data = celsius)
+```
+
+```{r Test des résidus, echo=T,fig.show='hide',results='hide'}
+#test de Shapiro sur les deux modèles
+shapiro.test(ancova_temp_inter$residuals)
+shapiro.test(ancova_temp$residuals)
+par(mfrow=c(2,2))
+plot(ancova_temp_inter)
+plot(ancova_temp)
+```
+Les tests de Shapiro ne sont pas significatifs (`p-value = `) et l’observation du Q-Qplot des résidus nous confirment que nos résidus sont normaux, nos conditions sont donc réunies et nous pouvons donc passer à la suite du test. 
+
+```{r Comparaison des modèles, echo=T,results='hide'}
+AIC(ancova_temp_inter, ancova_temp) # + AIC faible, mieux c'est : sans interaction mieux
+AIC(ancova_temp_inter, ancova_temp) # + BIC faible, mieux c'est : sans interaction mieux
+anova(ancova_temp_inter, ancova_temp) # + RSS faible, mieux c'est : pas de différence significative donc on prend le modèle le plus simple : sans interaction
+# meilleure p-value pour le modèle sans interaction
+# On utilise donc le modèle sans interaction
+```
+La comparaison du modèle avec ou sans intéraction nous dirige vers le modèle sans intéraction.
+
+d’ou,
+Pour tout $i$ allant de 1 à 13, et $j$ allant de 1 à 4  on suppose que $y_{ij}$ est la réalisation d'une variable aléatoire $Y_{ij}$ représentent la température telle que:
+
+$$Y_{ij} = \beta_{0}+\beta_{1}*\alpha_{i} + \beta_{2}*\gamma_{j}+ E_{ijk}$$
 avec : 
 $$E_{ijk} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
 où:
 
-- $\alpha_{i}$ , $\gamma_{j}$ et $x_{ij}$sont respectivement les années, les saisons et l’intéraction des deux.
-- $E_k$ suis une loi normal d'espérance 0 et de variance $\sigma^2$
-```{r code modèle température, echo=T,fig.show='hide'}
-ancova_temp <- lm(temp ~ year*saison, data = celsius)
-shapiro.test(ancova_temp$residuals)
-par(mfrow=c(2,2))
-plot(ancova_temp)
+- $\alpha_{i}$ et $\gamma_{j}$ sont respectivement les années, les saisons
+- $E_k$ est une variable aléatoire:
+    - D'espérance égale à 0;
+    - De variance égale à $\sigma^2$, qui est un paramètre inconnu;
+    - De loi normale.
+```{r Test de l’ancova,echo=T}
 anova(ancova_temp) # *** year et saison
 ```
+Pour ce modèle, la sorti R nous informe que les années et les saisons influence la température de manière significative (p-value : <0.001). on a donc une variation de température d’un saison a une autre mais aussi la température augmente avec les années probablement du au réchauffment climatique
+
+#### Salinité
+```{r creation du modèle et test des hypothèses ,echo=T,fig.show='hide'}
+# ANCOVA avec interaction
+ancova_salinity_inter <- lm(salinity ~ year*saison, data = salinity)
+shapiro.test(ancova_salinity_inter$residuals)
+par(mfrow=c(2,2))
+plot(ancova_salinity_inter) # résidus non normaux donc on va normaliser la salinité pour chaque saison
+```
+d’après le test de shapiro et les observations des graphs des résidus, les données ne sont pas normal, on fait donc une normalisation avec “best Normalize”
+```{r Normalisation,echo=T}
+# normalisation de la salinité pour chaque saison
+salinity_normalized <- salinity |>
+  group_by(saison) |>
+  mutate(salinity_norm = bestNormalize(salinity, out_of_sample = FALSE)$x.t)
+```
+on recrée donc deux modèle avec les données normalisé et on les retest. c’est fois les hypothèse du modèle sont validé
+```{r Création des deux modèles avec les données normalisé,echo=T,results='hide'}
+# ANCOVA avec interaction 
+ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized)
+# ANCOVA sans interaction normalisée
+ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity_normalized)
+```
+```{r test des hypothèse du modèle 2,echo=F,results='hide',fig.show='hide'}
+shapiro.test(ancova_salinity_inter_normalized$residuals)
+shapiro.test(ancova_salinity_normalized$residuals)
+par(mfrow=c(2,2))
+plot(ancova_salinity_inter_normalized)
+plot(ancova_salinity_normalized)
+```
+on les recompare comme pour la température
+```{r comparaison des 2 modèles,echo=F,results='hide'}
+# Test des 2 modèles
+AIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + AIC faible, mieux c'est : sans interaction mieux
+BIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + BIC faible, mieux c'est : sans interaction mieux
+anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + RSS faible, mieux c'est : pas de différence significative donc on prend le modèle le plus simple : sans interaction
+# p-value plus faible pour le modèle sans interaction
+# on choisit donc le modèle sans interaction
+```
+La comparaison du modèle avec ou sans intéraction nous dirige vers le modèle sans intéraction.
+
+d’ou,
+Pour tout $i$ allant de 1 à 13, et $j$ allant de 1 à 4  on suppose que $y_{ij}$ est la réalisation d'une variable aléatoire $Y_{ij}$ représentent la salinité telle que:
+
+$$Y_{ij} = \beta_{0}+\beta_{1}*\alpha_{i} + \beta_{2}*\gamma_{j} + E_{ijk}$$
+avec : 
+$$E_{ijk} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
+où:
+
+- $\alpha_{i}$ et $\gamma_{j}$ sont respectivement les années, les saisons 
+- $E_k$ est une variable aléatoire:
+    - D'espérance égale à 0;
+    - De variance égale à $\sigma^2$, qui est un paramètre inconnu;
+    - De loi normale.
+
+```{r Test de l’ancova salinité,echo=T}
+anova(ancova_salinity_normalized) # ** year mais saison pas significatif
+```
+Pour ce modèle, la sorti R nous informe que les années et les saisons influence la salinité de manière significative (p-value : <0.001). on a donc une variation de salinité d’un saison a une autre mais aussi la salinité augmente avec les années probablement du au réchauffment climatique
+
+### Question 2
+
+## Discussion / Ouverture
+Le réchauffement climatique est un problème d'une très grande importance, dont l'impact est de nos jours bien identifié. L'augmentation des températures et de la salinité des océans en fait partie et impacte grandement l'écologie des espèces marines. C'est pourquoi, dans cette étude, nous avons voulu montrer que les îles Kodiak sont aussi touchées par ce changement des conditions abiotiques et qu'elles ont un impact sur le King Crab, une ressource importante pour la pêche dans cette zone.
+
+La première partie de notre étude a clairement montré une augmentation des températures et de la salinité de cette zone entre 1973 et 1986. Que ce soit au sein des saisons ou entre les années, cette augmentation existe et modifie donc complètement le milieu de vie.
+
+C'est pourquoi nous avons ensuite cherché à voir si ces modifications impactent le nombre de crabes, leur taille ou leur nombre d'œufs.
+
+Il est intéressant de noter que les observations ont été faites il y a 40 ans ou plus, et que la situation a probablement beaucoup évolué. Il serait donc intéressant de continuer la prise de données et de les comparer. De plus, nous n'avons pas abordé ici l'impact de la pêche. On observe que le prix augmente lorsque la population diminue par effet de rareté. Cependant, il semble que l'effort de pêche ne diminue pas et que cela reste rentable. Aussi, on observe des chutes importantes des populations qui suivent une augmentation de la pêche, ce qui pourrait supposer d'une forte impact de cette dernière. Le simple fait que seuls les mâles sont pêchés (car les recruits ne concernent que les mâles) peut impacter le sex-ratio, et couplé à l'impact de l'environnement, cela pourrait être la cause de la décroissance des populations.
+
+C'est un problème multifactoriel qui nécessite plus d'approfondissement pour être compris et pour permettre une conservation du milieu et de cette ressource.
 
 
-# Discussion / Ouverture
