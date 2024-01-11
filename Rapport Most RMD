@@ -24,8 +24,6 @@ encoding: "UTF-8"
 </style>
 
 ```{r setup, include=FALSE}
-# Ce code, non inclus dans la sortie (car on a spécifié include = FALSE)
-# permet de spécifier toutes les options par défaut pour les chunks
 knitr::opts_chunk$set(echo = FALSE, # Ici, par défaut, les chunks seront invisibles
                       eval = TRUE, # Tous les chunks sont évalués par défaut
                       fig.align = "center", # Les figures sont centrées
@@ -41,6 +39,16 @@ knitr::opts_knit$set(root.dir = "~/cours/M2/MOST/projet/KingCrab-20231110") # po
 rm(list=ls())
 
 # Liste des package utilisés 
+
+install.packages("ggplot2")
+install.packages("tidyverse")
+install.packages("bestNormalize")
+install.packages("RColorBrewer")
+install.packages("plotly")
+install.packages("gridExtra")
+install.packages("gganimate")
+
+
 library(ggplot2) 
 library(tidyverse)
 library(bestNormalize)
@@ -326,11 +334,11 @@ survey_map$fishing_district <- as.factor(survey_map$fishing_district)
 ## King Crab
 ### Ecologie
 
-Le crabe royal du Kamtchatka, également connu sous le nom de red king crab, est une espèce de crustacé décapode appartenant à la famille des Lithodidae. On les trouve dans les eaux froides de l'océan Pacifique Nord, principalement dans les régions proches de l'Alaska, de la Russie et du Japon. Ils préfèrent les fonds marins riches en nutriments à des profondeurs allant jusqu'à plusieurs centaines de mètres. Ces crustacés ont une carapace dure et massive, pouvant atteindre une envergure importante. Ils se caractérisent par leurs pinces robustes et puissantes, utilisées pour la capture de proies et la défense. Leur régime alimentaire varie, mais il inclut généralement des mollusques, des petits poissons et d'autres organismes marins.
+Le crabe royal du Kamtchatka, également connu sous le nom de red king crab (Paralithodes camtschaticus), est une espèce de crustacé décapode appartenant à la famille des Lithodidae. On les trouve dans les eaux froides de l'océan Pacifique Nord, principalement dans les régions proches de l'Alaska, de la Russie et du Japon. Ils préfèrent les fonds marins riches en nutriments à des profondeurs allant jusqu'à plusieurs centaines de mètres. Ces crustacés ont une carapace dure et massive, pouvant atteindre une envergure importante. Ils se caractérisent par leurs pinces robustes et puissantes, utilisées pour la capture de proies et la défense. Leur régime alimentaire varie, mais il inclut généralement des mollusques, des petits poissons et d'autres organismes marins.
 
 
 ### Pèche
- Le King Crab d'Alaska est célèbre pour sa chair délicate et savoureuse, ce qui en fait une espèce très prisée dans le secteur de la pêche commerciale. La pêche au crabe royal est une activité économiquement importante pour les communautés côtières de l'Alaska, de la Russie et d'autres régions où ces crustacés sont abondants. Ils sont exportés dans le monde entier pour répondre à la demande croissante de fruits de mer de qualité. La chair ferme et sucrée du King Crab en fait un produit recherché sur le marché international. De ce fait, une gestion durable de la pêche au crabe royal est cruciale pour préserver les populations et les écosystèmes marins. Des mesures de conservation strictes sont mises en œuvre pour assurer la durabilité de cette ressource précieuse. Pour pouvoir instaurer un quota de pêche chaque année, le Département de la Pêche et du Jeu de l'Alaska réalise un important échantillonnage des crabes dans les zones de pêche.
+P.camtschaticus est célèbre pour sa chair délicate et savoureuse, ce qui en fait une espèce très prisée dans le secteur de la pêche commerciale. La pêche au crabe royal est une activité économiquement importante pour les communautés côtières de l'Alaska, de la Russie et d'autres régions où ces crustacés sont abondants. Ils sont exportés dans le monde entier pour répondre à la demande croissante de fruits de mer de qualité. La chair ferme et sucrée du crabe royal en fait un produit recherché sur le marché international. De ce fait, une gestion durable de la pêche au crabe royal est cruciale pour préserver les populations et les écosystèmes marins. Des mesures de conservation strictes sont mises en œuvre pour assurer la durabilité de cette ressource précieuse. Pour pouvoir instaurer un quota de pêche chaque année, le Département de la Pêche et du Jeu de l'Alaska réalise un important échantillonnage de P.camtschaticus dans les zones de pêche.
  
 ## Zone d'étude
 La zone d'étude dans laquelle ont été collectées les données mises à notre disposition est l'archipel de Kodiak, situé au sud de l'Alaska, au nord de l'océan Pacifique. Les îles Kodiak s'étendent sur environ 9 300 kilomètres carrés avec une topographie variée, comprenant des montagnes, des fjords, des rivières et des vallées. La pêche y joue un rôle essentiel dans l'économie, la région est particulièrement connue pour sa pêche au saumon, au crabe et à d'autres fruits de mer.
@@ -407,7 +415,7 @@ base_plot |>
 ## Jeux de donnée
 
 ### Provenance des données
-Tous les ensembles de données, sauf la salinité (`salinity`) et la température (`celsius`), ont été fournis par le Département de la Pêche et du Jeu de l'Alaska. Les données de salinité et de température proviennent de Tom Royer de l’Institut des Sciences Marines à l’Université d'Alaska à Fairbanks,. Il y a aussi des statistiques sur la flotte de pêche et les captures commerciales (`fleet` et `catch`), pour chaque année entre 1960 et 1982. Certaines données de pêche sont réparties par district (les 4 zones colorées sur la carte). Cette période est intéressante car elle entoure un événement majeur qui est le tremblement de terre de 1964 qui a touché l'île avec un séisme de magnitude 9.1. Ainsi, ces données ont peut-être été prises dans l'optique de surveiller la zone suite à cet incident.
+Tous les ensembles de données, sauf la salinité (`salinity`) et la température (`celsius`), ont été fournis par le Département de la Pêche et du Jeu de l'Alaska. Les données de salinité et de température proviennent de Tom Royer de l’Institut des Sciences Marines à l’Université d'Alaska à Fairbanks,. Il y a aussi des statistiques sur la flotte de pêche et les captures commerciales (`fleet` et `catch`), pour chaque année entre 1960 et 1982. Certaines données de pêche sont réparties par district (les 4 zones colorées sur la carte).
 
 ### Modifications apportées
 Avant toute chose, de nombreuses modifications ont été nécessaires pour rendre les données exploitables. Il a fallu ranger, organiser et transformer les données afin de pouvoir les visualiser graphiquement et les analyser statistiquement. 
@@ -476,7 +484,7 @@ grid.arrange(plot_count_year , plot_len_year , plot_price_year ,plot_pot_lifted_
 
 ```
 
-La population totale de crabes subit de fortes variations au cours du temps avec des pics importants et une décroissance critique entre 1980 et 1986, La taille des crabes, qu'ils soient mâles ou femelles, semble être en augmentation, malgré une période de diminution entre 1975 et 1978. Quand au prix des crabes à la livre, il subit une très forte augmentation à partir des années 1980, ce qui correspond à la raréfaction de la ressource due à la diminution de la population observée plus tôt sur cette période là. Enfin on remarque que 
+La population totale de P.camtschaticus subit de fortes variations au cours du temps avec des pics importants et une décroissance critique entre 1980 et 1986, La taille des crabes, qu'ils soient mâles ou femelles, semble être en augmentation, malgré une période de diminution entre 1975 et 1978. Quand au prix des crabes à la livre, il subit une très forte augmentation à partir des années 1980, ce qui correspond à la raréfaction de la ressource due à la diminution de la population observée plus tôt sur cette période là. Enfin on remarque que 
 
 
 ## Problématiques
@@ -534,26 +542,34 @@ Les tests de Shapiro ne sont pas significatifs (avec interaction : `p-value = 0.
  et sans interaction :  `p-value = 0.57`) et l’observation du graphique quantile-quantile des résidus nous confirment que nos résidus sont normaux, nos conditions sont donc réunies et nous pouvons donc passer à la suite du test. 
 
 ```{r Comparaison des modèles, echo=T,results='hide'}
-AIC(ancova_temp_inter, ancova_temp) # + AIC faible, mieux c'est : sans interaction mieux
-BIC(ancova_temp_inter, ancova_temp) # + BIC faible, mieux c'est : sans interaction mieux
-anova(ancova_temp_inter, ancova_temp) # + RSS faible, mieux c'est : pas de différence significative donc on prend le modèle le plus simple : sans interaction
-# meilleure p-value pour le modèle sans interaction
-# On utilise donc le modèle sans interaction
+AIC(ancova_temp_inter, ancova_temp) 
+BIC(ancova_temp_inter, ancova_temp)
+anova(ancova_temp_inter, ancova_temp) 
 ```
-La comparaison du modèle avec ou sans intéraction nous dirige vers le modèle sans intéraction. On peut ainsi le formuler : 
+on compare les valeurs d’AIC et BIC ainsi que les deux modèles entre eux (on regarde les valeur de R²). Ainsi, on voit que le modèle sans intéraction à un AIC et un BIC plus faible que celui avec intéraction. De plus sa valeur de R² est plus élevé, indiquant que ce modèle prédit mieux les données. On privilégira donc le modèle sans Interaction.
 
-Pour tout $i$ allant de 1 à 13, et $j$ allant de 1 à 4  on suppose que $y_{ij}$ est la réalisation d'une variable aléatoire $Y_{ij}$ représentent la température telle que:
+Pour tout $i$ allant de 1 à 4, et $k$ allant de 1 à 22 on suppose que
+$y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$
+représentent la température (en °C) telle que :
 
-$$Y_{ij} = \beta_{0}+\beta_{1}*\alpha_{i} + \beta_{2}*\gamma_{j}+ E_{ijk}$$
-avec : 
-$$E_{ijk} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
+$$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik}  + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
 où:
 
-- $\alpha_{i}$ et $\gamma_{j}$ sont respectivement les années, les saisons
-- $E_k$ est une variable aléatoire:
-    - D'espérance égale à 0;
-    - De variance égale à $\sigma^2$, qui est un paramètre inconnu;
-    - De loi normale.
+-   $Y_{ik}$ est la $k$-ième observation de la température à la saison
+    $i$
+
+-   $\mu$ est l'intercept
+
+-   $\alpha_{i}$ est l'effet de la $i$-ème saison (sur l'intercept)
+
+-   $\beta$ est l’effet commun à toutes les saisons de l’année sur la température (pente de référence de la droite de régression)
+-   $E_{ik}$ est l'erreur résiduelle de la $k$-ième observation de la
+    température à la saison $i$
+
+-   $x_{ik}$ est l'année de la $k$-ième observation de la saison $i$
+
+
+
 ```{r Test de l’ANCOVA,echo=T}
 anova(ancova_temp)
 ```
@@ -572,7 +588,7 @@ par(mfrow=c(2,2))
 plot(ancova_salinity_inter )
 ```
 
-D’après le test de Shapiro sur les résidus ainsi que l’observation du Q-Qplot résidus, les résidus ne sont pas normaux, on normalise donc la salinité pour chaque saison avec la fonction `boxcox` du package `bestNormalize` :
+D’après le test de Shapiro sur les résidus ainsi que l’observation du Q-Qplot résidus, les résidus ne sont pas normaux (p-value = 0.03701), on normalise donc la salinité pour chaque saison avec la fonction `boxcox` du package `bestNormalize` :
 
 ```{r Normalisation de la salinité pour chaque saison,echo=T}
 salinity_normalized <- salinity |> 
@@ -592,39 +608,83 @@ par(mfrow=c(2,2))
 plot(ancova_salinity_inter_normalized)
 plot(ancova_salinity_normalized)
 ```
+les deux nouveaux modèles sont bien normal (P-value respéctive des shapiro tests : 0.418 et 0.249)
 On compare le modèle avec interaction et le modèle sans interaction pour déterminer celui que l’on sélectionnera. 
 
 ```{r Comparaison des 2 modèles,echo=F,results='hide'}
-AIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + AIC faible, mieux c'est : sans interaction mieux
-BIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + BIC faible, mieux c'est : sans interaction mieux
-anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + RSS faible, mieux c'est : pas de différence significative donc on prend le modèle le plus simple : sans interaction
-# p-value plus faible pour le modèle sans interaction
-# on choisit donc le modèle sans interaction
+AIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) BIC(ancova_salinity_normalized, ancova_salinity_inter_normalized)
+anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) 
 ```
+on compare les valeurs d’AIC et BIC ainsi que les deux modèles visant la salinité entre eux (on regarde les valeur de R²). Ainsi, on voit que le modèle sans intéraction à un AIC et un BIC plus faible que celui avec intéraction. De plus sa valeur de R² est plus élevé, indiquant que ce modèle prédit mieux les données. On privilégira donc le modèle sans Interaction.
 La comparaison du modèle avec ou sans intéraction nous dirige vers le modèle sans intéraction. On peut alors le formuler de la manière suivante : 
 
-Pour tout $i$ allant de 1 à 13, et $j$ allant de 1 à 4  on suppose que $y_{ij}$ est la réalisation d'une variable aléatoire $Y_{ij}$ représentent la salinité telle que:
-
-$$Y_{ij} = \beta_{0}+\beta_{1}*\alpha_{i} + \beta_{2}*\gamma_{j} + E_{ijk}$$
-avec : 
-$$E_{ijk} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
-où:
-
-- $\alpha_{i}$ et $\gamma_{j}$ sont respectivement les années, les saisons 
-- $E_k$ est une variable aléatoire:
-    - D'espérance égale à 0;
-    - De variance égale à $\sigma^2$, qui est un paramètre inconnu;
-    - De loi normale.
 
 ```{r Test de l’ANCOVA salinité, echo=T}
 anova(ancova_salinity_normalized) 
+ancova_salinity_normalized$coeff
 ```
 Pour ce modèle, les résultats de la sortie R révèlent que la variable 'année' a un effet statistiquement significatif sur la salinité (`p-value de 0.001059`). En revanche, la variable 'saison' ne montre pas d’effet significatif (`p-value de 0.991987`). Ces résultats suggèrent que la salinité varie en fonction des années, ce qui pourrait être une conséquence du changement climatique. Cependant, il n'y a pas de variation significative de la salinité d'une saison à l'autre selon les données analysées.
 
+Le modèle linéaire utilisé est l’analyse de la variance (ANCOVA) :
+
+Pour tout $i$ allant de 1 à 4, et $k$ allant de 1 à 22 on suppose que
+$y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$
+représentent la température (en °C) telle que :
+
+$$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik}  + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
+où:
+
+-   $Y_{ik}$ est la $k$-ième observation de la température à la saison
+    $i$
+
+-   $\mu$ est l'intercept
+
+-   $\alpha_{i}$ est l'effet de la $i$-ème saison (sur l'intercept)
+
+-   $\beta$ est la pente de référence
+
+-   $E_{ik}$ est l'erreur résiduelle de la $k$-ième observation de la
+    température à la saison $i$
+
+-   $x_{ik}$ est l'année de la $k$-ième observation de la saison $i$
+
+
+Dans les deux modèles, les P-valeurs sont inférieures au seuil, on rejet donc H0. On peut donc dire que la température et la salinité varie significativement au cours des années (et des saison pour la température mais pas pour la salinité)
+
+
 ## Question 2
 
+Pour tout $i$ allant de 1 à 2, et $k$ allant de 1 à 407887 on suppose
+que $y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$
+représentent la longueur du crabe (en millimètres) telle que :
+
+$$Y_{ik} = (\mu + \alpha_i) + \beta_1 x_{ik1} + \beta_2 x_{ik2}  + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
+où :
+
+-   $Y_{ik}$ est la $k$-ième observation de la longueur pour le niveau
+    $i$ du facteur sexe
+
+-   $\mu$ est l'intercept
+
+-   $\alpha_{i}$ est l'effet du niveau $i$ du facteur sexe (sur
+    l'intercept)
+
+-   $\beta_1$ est l'effet de la température sur la longueur du crabe
+
+-   $\beta_2$ est l'effet de la salinitié sur la longueur du crabe
+
+-   $E_{ik}$ est l'erreur résiduelle de la $k$-ième observation de la
+    température au niveau $i$ du facteur saison
+
+-   $x_{ik1}$ est la température de la $k$-ième observation du niveau
+    $i$ du facteur sexe
+
+-   $x_{ik2}$ est la salinité de la $k$-ième observation du niveau $i$
+    du facteur sexe
+
+
 # Discussion / Ouverture
-Le changement climatique est un problème majeur de notre siècle, dont l'origine anthropique est désormais prouvée. L'augmentation des températures des océans en fait partie et impacte grandement l'écologie des espèces marines. C'est pourquoi, dans cette étude, nous avons voulu montrer que les îles Kodiak sont également touchées par ce changement des conditions abiotiques et qu'elles ont un impact sur le crabe royal du Kamtchatka, une ressource importante pour la pêche dans cette zone.
+Le changement climatique est un problème majeur de notre siècle, dont l'origine anthropique est désormais prouvée. L'augmentation des températures des océans en fait partie et impacte grandement l'écologie des espèces marines. C'est pourquoi, dans cette étude, nous avons voulu montrer que les îles Kodiak sont également touchées par ce changement des conditions abiotiques et qu'elles ont un impact sur P.camtschaticus, une ressource importante pour la pêche dans cette zone.
 
 La première partie de notre étude a clairement montré une augmentation significative des températures au cours des années et avec des variations au cours des saisons et une diminution significative de la salinité de cette zone entre 1973 et 1986. 
 
