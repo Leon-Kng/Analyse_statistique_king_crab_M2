@@ -19,10 +19,9 @@ encoding: "UTF-8"
 
 <style>
   body {
-    font-size: 13px; /* Changer cette valeur en fonction de la taille de police souhaitée */
+    font-size: 12px; /* Changer cette valeur en fonction de la taille de police souhaitée */
   }
 </style>
-
 
 ```{r setup, include=FALSE}
 # Ce code, non inclus dans la sortie (car on a spécifié include = FALSE)
@@ -32,6 +31,7 @@ knitr::opts_chunk$set(echo = FALSE, # Ici, par défaut, les chunks seront invisi
                       fig.align = "center", # Les figures sont centrées
                       fig.width = 8,
                       fig.height = 6, 
+          class.source = "small",
                       message = FALSE, # Les messages de R ne sont pas sortis
                       warning = FALSE) # Les avertissement de R ne sont pas sortis
 knitr::opts_knit$set(root.dir = "~/cours/M2/MOST/projet/KingCrab-20231110") # pour rendre le working directory persistant d'un chunk de code à l'autre
@@ -530,8 +530,8 @@ par(mfrow=c(2,2))
 plot(ancova_temp_inter)
 plot(ancova_temp)
 ```
-Les tests de Shapiro ne sont pas significatifs (`p-value = 0.3044
- / 0.57’) et l’observation du Q-Qplot des résidus nous confirment que nos résidus sont normaux, nos conditions sont donc réunies et nous pouvons donc passer à la suite du test. 
+Les tests de Shapiro ne sont pas significatifs (avec interaction : `p-value = 0.3044`
+ et sans interaction :  `p-value = 0.57`) et l’observation du graphique quantile-quantile des résidus nous confirment que nos résidus sont normaux, nos conditions sont donc réunies et nous pouvons donc passer à la suite du test. 
 
 ```{r Comparaison des modèles, echo=T,results='hide'}
 AIC(ancova_temp_inter, ancova_temp) # + AIC faible, mieux c'est : sans interaction mieux
@@ -555,7 +555,7 @@ où:
     - De variance égale à $\sigma^2$, qui est un paramètre inconnu;
     - De loi normale.
 ```{r Test de l’ancova,echo=T}
-anova(ancova_temp) # *** year et saison
+anova(ancova_temp)
 ```
 Dans l'analyse effectuée avec R pour notre modèle, nous observons que les variables 'année' et 'saison' ont un impact significatif sur la température. Ceci est démontré par des valeurs de p extrêmement basses (pour l'année : `p-value = 0,0002174` et pour la saison : `p-value = 3,348e-16`). Ces résultats suggèrent une variation saisonnière claire de la température. De plus, ils indiquent une tendance progressive à l'augmentation de la température au fil des années. Cette tendance pourrait être potentiellement liée au changement climatique, bien que des études supplémentaires soient nécessaires pour établir une relation causale solide entre ces observations et le changement climatique global.
 L'estimation ponctuelle pour le coefficient X, tel que défini dans notre modèle, est de X, valeurs obtenues grâce à l’ajustement du modèle dans `R`.
@@ -566,7 +566,7 @@ L'estimation ponctuelle pour le coefficient X, tel que défini dans notre modèl
 # avec interaction
 ancova_salinity_inter <- lm(salinity ~ year*saison, data = salinity)
 ```
-```{r Test des résidus, echo=T,fig.show='hide',results='hide'}
+```{r Test des résidus n2, echo=T,fig.show='hide',results='hide'}
 shapiro.test(ancova_salinity_inter$residuals)
 par(mfrow=c(2,2))
 plot(ancova_salinity_inter )
@@ -582,10 +582,8 @@ salinity_normalized <- salinity |>
 ```
 On reformule donc deux modèles d’ancova avec les données normalisées et on les teste à nouveau.
 ```{r Ancova - salinité normalisée en fonction de l’année et de la saison (avec et sans interaction),echo=T,results='hide'}
-# avec interaction 
-ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized)
-# sans interaction normalisée
-ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity_normalized)
+ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized) # avec interaction 
+ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity_normalized) # sans interaction normalisée
 ```
 ```{r Test des hypothèses des 2 ancova (avec ou sans interaction), echo=F,results='hide',fig.show='hide'}
 shapiro.test(ancova_salinity_inter_normalized$residuals)
@@ -619,7 +617,7 @@ où:
     - De loi normale.
 
 ```{r Test de l’ancova salinité, echo=T}
-anova(ancova_salinity_normalized) # ** year mais saison pas significatif
+anova(ancova_salinity_normalized) 
 ```
 Pour ce modèle, les résultats de la sortie R révèle que la variable 'année' a un effet statistiquement significatif sur la salinité (`p-value de 0.001059`). En revanche, la variable 'saison' ne montre pas d’effet significatif (`p-value de 0.991987`). Ces résultats suggèrent que la salinité varie en fonction des années, ce qui pourrait être une conséquence du changement climatique. Cependant, il n'y a pas de variation significative de la salinité d'une saison à l'autre selon les données analysées.
 
@@ -635,6 +633,9 @@ C'est pourquoi nous avons ensuite cherché à voir si ces modifications impacten
 Il est intéressant de noter que les observations ont été faites il y a 40 ans ou plus, et que la situation a probablement beaucoup évolué. Il serait donc intéressant de continuer la prise de données et de les comparer. De plus, nous n'avons pas abordé ici l'impact de la pêche. On observe que le prix augmente lorsque la population diminue par effet de rareté. Cependant, il semble que l'effort de pêche ne diminue pas et que cela reste rentable. Aussi, on observe des chutes importantes des populations qui suivent une augmentation de la pêche, ce qui pourrait supposer d'une forte impact de cette dernière. Le simple fait que seuls les mâles sont pêchés (car les recruits ne concernent que les mâles) peut impacter le sex-ratio, et couplé à l'impact de l'environnement, cela pourrait être la cause de la décroissance des populations.
 
 C'est un problème multifactoriel qui nécessite plus d'approfondissement pour être compris et pour permettre une conservation du milieu et de cette ressource.
+
+Il serait intéressant d’avoir le district en donnée supplémentaire à nos ancova sur la température et la salinité pour voir si on a des secteurs plus ou moins protégés par l’île des courants. 
+
 
 
 
