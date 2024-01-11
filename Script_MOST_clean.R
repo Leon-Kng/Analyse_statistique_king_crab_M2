@@ -314,6 +314,7 @@ ggplot(celsius, aes(x = year, y = temp, color = saison))+
 # avec interaction
 ancova_temp_inter <- lm(temp ~ year*saison, data = celsius)
 shapiro.test(ancova_temp_inter$residuals)
+bartlett.test(ancova_temp_inter$residuals ~ celsius$saison)
 par(mfrow=c(2,2))
 plot(ancova_temp_inter)
 summary(ancova_temp_inter)
@@ -322,6 +323,7 @@ anova(ancova_temp_inter) # *** year et saison mais pas l'interaction
 # sans interaction
 ancova_temp <- lm(temp ~ year + saison, data = celsius)
 shapiro.test(ancova_temp$residuals)
+bartlett.test(ancova_temp$residuals ~ celsius$saison)
 par(mfrow=c(2,2))
 plot(ancova_temp)
 summary(ancova_temp)
@@ -350,11 +352,6 @@ shapiro.test(ancova_salinity_inter$residuals)
 par(mfrow=c(2,2))
 plot(ancova_salinity_inter) # résidus non normaux donc on va normaliser la salinité pour chaque saison
 
-# normalisation de la salinité pour chaque saison
-salinity_normalized <- salinity %>%
-  group_by(saison) %>%
-  mutate(salinity_norm = bestNormalize(salinity, out_of_sample = FALSE)$x.t)
-
 # Test autre méthode de normalisation
 salinity_normalized <- salinity %>%
   group_by(saison) %>%
@@ -364,6 +361,7 @@ salinity_normalized <- salinity %>%
 # ANCOVA avec interaction 
 ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized)
 shapiro.test(ancova_salinity_inter_normalized$residuals)
+bartlett.test(ancova_salinity_inter_normalized$residuals ~ salinity_normalized$saison)
 par(mfrow=c(2,2))
 plot(ancova_salinity_inter_normalized)
 summary(ancova_salinity_inter_normalized)
@@ -372,6 +370,7 @@ anova(ancova_salinity_inter_normalized) #  ** year mais saison pas significatif
 # ANCOVA sans interaction normalisée
 ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity_normalized)
 shapiro.test(ancova_salinity_normalized$residuals)
+bartlett.test(ancova_salinity_normalized$residuals ~ salinity_normalized$saison)
 par(mfrow=c(2,2))
 plot(ancova_salinity_normalized)
 summary(ancova_salinity_normalized)
@@ -457,3 +456,4 @@ mod_taille_temp_M <- lm(length_mm ~ temp_moy, data = dstns_long_M)
 par(mfrow=c(2,2))
 plot(mod_taille_temp_M)
 summary(mod_taille_temp_M)
+
