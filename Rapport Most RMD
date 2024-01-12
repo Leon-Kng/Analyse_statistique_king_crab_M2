@@ -20,7 +20,7 @@ encoding: "UTF-8"
 ```{=html}
 <style>
   body {
-    font-size: 12px; 
+    font-size: 13px; 
   }
 h1 {
   font-size: 20px; 
@@ -31,7 +31,9 @@ h2 {
 h3 {
   font-size: 16px; 
 }
-
+h4 {
+  font-size: 14px; 
+}
 </style>
 ```
 ```{r setup, include=FALSE}
@@ -499,7 +501,7 @@ grid.arrange(plot_count_year , plot_len_year , plot_price_year ,plot_mass_crabe 
 
 ```
 
-La population totale de P.camtschaticus subit de fortes variations au cours du temps avec des pics importants et une décroissance critique entre 1980 et 1986, La taille des crabes, qu'ils soient mâles ou femelles, semble être en augmentation, malgré une période de diminution entre 1975 et 1978. Quand au prix des crabes à la livre, il subit une très forte augmentation à partir des années 1980, ce qui correspond à la raréfaction de la ressource due à la diminution de la population observée plus tôt sur cette période là. Enfin on remarque que
+La population totale de P.camtschaticus subit de fortes variations au cours du temps avec des pics importants et une décroissance critique entre 1980 et 1986, La taille des crabes, qu'ils soient mâles ou femelles, semble être en augmentation, malgré une période de diminution entre 1975 et 1978. Quand au prix des crabes à la livre, il subit une très forte augmentation à partir des années 1980, ce qui correspond à la raréfaction de la ressource due à la diminution de la population observée plus tôt sur cette période là. Enfin on remarque qu'une très grande quantité de crabe a été pêchée en 1965 mais que la quantité baisse fortement par la suite, grâce notamment à l'instauration de quotas de pêche permis par les échantillonnages cités plus tôt.
 
 ## Problématiques
 
@@ -513,6 +515,7 @@ Suite à ces observations, plusieurs questions nous sont apparues.
 
 ## Question 1
 
+### Visualisation 
 On veut donc tester si des facteurs abiotiques comme la température et la salinité des eaux au large des côtes de l'Alaska à 100 mètres de profondeur varient avec le temps. Tout d’abord visualisons ces données graphiquement :
 
 ```{r Graphiques température et salinité en fonction de l année et de la saison, echo=F, out.width = "75%", out.height = "75%"}
@@ -540,7 +543,8 @@ L'objectif de notre étude est d'évaluer l'existence d'une corrélation statist
 
 ### Température
 
-Formulation du modèle d'analyse de la covariance avec interaction :
+#### Formulation du modèle
+Mdèle d'analyse de la covariance (ANCOVA) avec interaction :
 
 Pour tout $i$ allant de 1 à 4, et $k$ allant de 1 à 22 on suppose que $y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$ représentant la température (en °C) telle que :
 
@@ -560,6 +564,7 @@ $$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik} + \gamma_i x_{ik} + E_{ik} ,\qquad E_{i
 
 -   $x_{ik}$ est l'année de la $k$-ième observation de la saison $i$
 
+#### Test de l'hypothèse de normalité
 Nous testons la normalité de la température pour chaque saison à l'aide du test de Shapiro :
 
 ```{r Test normalité de la température pour chaque saison, echo = T, eval = F}
@@ -567,6 +572,8 @@ tapply(celsius$temp, celsius$saison, shapiro.test)
 ```
 
 Aucun des tests n'est significatif, l'hypothèse de la normalité de $Y_i$ est donc validée, on peut passer à la suite.
+
+#### Test des modèles
 
 ```{r ANCOVA - température en fonction de l’année et de la saison avec interaction, echo=T, fig.show='hide', class.output="small"}
 ancova_temp_inter <- lm(temp ~ year * saison, data = celsius)
@@ -584,7 +591,9 @@ plot(ancova_temp)
 Anova(ancova_temp)
 ```
 
-L'année et la saison on un effet fortement significatif sur la température (année : $p-value = 3.528 \times 10^5$ et saison : $p-value = 3.348 \times 10^{-16}$), on garde donc ce modèle. Formulation du modèle final avec les mêmes notations que précédemment :
+L'année et la saison on un effet fortement significatif sur la température (année : $p-value = 3.528 \times 10^5$ et saison : $p-value = 3.348 \times 10^{-16}$), on garde donc ce modèle. 
+#### Modèle final et résultats
+Formulation du modèle final avec les mêmes notations que précédemment :
 
 $$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik} + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
 
@@ -596,10 +605,13 @@ On obtient donc les estimations ponctuelles des paramètres définis plus haut :
 
 $\hat{\mu} = -221.73852$ / $\hat{\beta} = 0.11589$ / $\hat{\alpha}_{automne} = 0$ / $\hat{\alpha}_{été} = -2.27072$ / $\hat{\alpha}_{hiver} = -1.87579$ / $\hat{\alpha}_{printemps} = -3.56864$
 
+
 Dans l'analyse effectuée avec R pour notre modèle, nous observons que les variables 'année' et 'saison' ont un effet significatif sur la température. Ceci est démontré par des valeurs de p faibles (pour l'année : $p-value = 3.52810^{-5}$ et pour la saison : $p-value = 3.348 \times 10^{-16}$). Ces résultats suggèrent une variation saisonnière claire de la température. De plus, $\hat{\beta}$ étant positif, cela signifie que la température est correlée positivement avec les années et de manière significative. Cette tendance pourrait être potentiellement liée au changement climatique, bien que des études supplémentaires soient nécessaires avec beaucoup plus de données pour établir une corrélation plus solide entre ces observations et le changement climatique global.
+
 
 ### Salinité
 
+#### Formulation du modèle
 Nous formulons également un modèle d'analyse de la covariance pour la salinité :
 
 Pour tout $i$ allant de 1 à 4, et $k$ allant de 1 à 19 on suppose que $y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$ représentant la salinité (en parties par milliers) telle que :
@@ -620,6 +632,7 @@ $$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik} + \gamma_i x_{ik} + E_{ik} ,\qquad E_{i
 
 -   $x_{ik}$ est l'année de la $k$-ième observation de la saison $i$
 
+#### Test de l'hypothèse de normalité
 Nous testons la normalité de la salinité pour chaque saison à l'aide de tests de Shapiro :
 
 ```{r Test de la normalité de la salinité pour chaque saison, echo = T, eval =F}
@@ -628,6 +641,8 @@ tapply(salinity$salinity, salinity$saison, shapiro.test)
 
 Aucun test n'est significatif, on peut ainsi valider l'hypothèse de la normalité et passer à la suite.
 
+
+#### Test des modèles
 ```{r ANCOVA - salinité en fonction de l’année et de la saison avec interaction,echo=T,fig.show='hide', class.output="small"}
 ancova_salinity_inter <- lm(salinity ~ year * saison, data = salinity)
 par(mfrow=c(2,2))
@@ -644,7 +659,11 @@ plot(ancova_salinity)
 Anova(ancova_salinity)
 ```
 
-Pour ce modèle, les résultats de la sortie R révèlent que la variable `année` a un effet statistiquement significatif sur la salinité ($p-value = 0.001255$). La variable `saison` présente également un effet fortement significatif ($p-value = 3.062 \times 10^{-5}$). On garde donc ce modèle comme modèle final et on le reformule avec les mêmes notations que précédemment :
+Pour ce modèle, les résultats de la sortie R révèlent que la variable `année` a un effet statistiquement significatif sur la salinité ($p-value = 0.001255$). La variable `saison` présente également un effet fortement significatif ($p-value = 3.062 \times 10^{-5}$). 
+
+
+#### Modèle final et résultats
+On garde donc ce modèle comme modèle final et on le reformule avec les mêmes notations que précédemment :
 
 $$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik} + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
 
@@ -660,8 +679,9 @@ Ces résultats suggèrent que la salinité est correlée négativement avec les 
 
 ## Question 2
 
-Nous souhaitons ensuite tester si la température et la salinité ont un effet sur la longueur des crabes. Pour cela nous avons formuler un modèle d'analyse de la variance avec deux facteurs quantitatifs (`température` et `salinité`) et un facteur qualitatif (`sexe`). Nous avons également inclus une potentielle interaction entre le sexe et la température et salinité.
+Nous souhaitons ensuite tester si la température et la salinité ont un effet sur la longueur des crabes. Pour cela nous avons formulé un modèle d'analyse de la variance avec deux facteurs quantitatifs (`température` et `salinité`) et un facteur qualitatif (`sexe`). Nous avons également inclus une potentielle interaction entre le sexe et la température et salinité. Nous n'avons pas inclus l'année dans notre modèle car nous avons observé précédemment qu'elle était fortement corrélée à la température et la salinité et elle explique donc la même partie de la variance, nous préfèrons ainsi un modèle plus simple.
 
+#### Formulation du modèle
 Pour tout $i$ allant de 1 à 2, et $k$ allant de 1 à 407887 on suppose que $y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$ représentant la longueur du crabe (en millimètres) telle que :
 
 $$Y_{ik} = (\mu + \alpha_i) + (\beta_1 + \gamma_{i1}) x_{ik1} + (\beta_2 + \gamma_{i2}) x_{ik2}  + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$ où :
@@ -686,9 +706,12 @@ $$Y_{ik} = (\mu + \alpha_i) + (\beta_1 + \gamma_{i1}) x_{ik1} + (\beta_2 + \gamm
 
 -   $x_{ik2}$ est la salinité de la $k$-ième observation du niveau $i$ du facteur sexe
 
+#### Hypothèse de normalité
 Concernant l'hypothèse de normalité de la longueur des crabes pour chaque sexe, nous avons un très grand nombre d'observations (329233 pour les femelles et 407887 pour les mâles), la distribution de la longueur tend alors à se rapprocher d'une distribution normale, c'est une conséquence du théorème central limite. Cette hypothèse du modèle est donc validée, on peut formuler le modèle dans `R` pour cela nous utilisons la température moyenne et salinité moyenne de chaque année et la longueur mesurée des crabes mâles et femelles.
 
-```{r ANCOVA longueur du crabe en fonction du sexe, de la température et de la salinité avec interaction, echo = T, out.width = "75%", out.height = "75%"}
+
+#### Test du modèle
+```{r ANCOVA longueur du crabe en fonction du sexe, de la température et de la salinité avec interaction, echo = T, out.width = "65%", out.height = "65%", class.output="small"}
 mod_taille_temp_sal_inter <- lm(length_mm ~ sex * (temp_moy + sal_moy), data = dstns_long)
 par(mfrow=c(2,2))
 plot(mod_taille_temp_sal_inter)
@@ -709,7 +732,8 @@ En observant les graphiques du modèle (longs à générer de par le très grand
 
 On garde donc notre modèle initial sans enlever de facteur et on calcule les estimates de chaque paramètre.
 
-```{r Calcul des estimates du modèle}
+#### Estimation des paramètres du modèle
+```{r Calcul des estimates du modèle, class.output="small", echo = T}
 summary(mod_taille_temp_sal_inter)
 ```
 
@@ -718,7 +742,7 @@ On obtient donc les estimations ponctuelles des paramètres définis plus haut :
 $\hat{\mu} = 796,56997$ / $\hat{\alpha}_{femelle} = 0 $ / $\hat{\alpha}_{mâle} = 386,40050$ / $\hat{\beta_1} = -1,04662$ / $\hat{\beta_2} = -21,12123$ / $\gamma_{i1} = -3,31042$ / $\gamma_{i2} = -10,99277$
 
 
-
+#### Résultats et conclusion
 Nous pouvons en conclure que la longueur des crabes dépend de manière significative du sexe du crabe, cela confirme que l'on a un dimorphisme sexuel comme supposé en introduction. De plus la longueur des crabes est correlée négativement à la température moyenne annuelle de l'eau et à la salinité moyenne annuelle à 100 mètres de profondeur (de manière significative). Cela suggère que les crabes se développeraient moins bien ou atteindraient des tailles plus faibles lorsque la température et la salinité sont élevées. On pourrait l'expliquer par la modification négative de leur environnement lors de l'augmentation de ces facteurs abiotiques (qui peut être du au changement climatique), pouvant avoir un impact sur la disponibilité des ressources (proies par exemple). Cette réduction de la taille pourrait également être expliquée par un métabolisme des crabes moins efficace en sortant de certaines conditions environnementales ou encore que le développement des larves de crabes est impacté par cela et aurait des effets sur le long terme. 
 
 
@@ -728,8 +752,11 @@ Le changement climatique est un problème majeur de notre siècle, dont l'origin
 
 La première partie de notre étude a clairement montré une augmentation significative des températures au cours des années et avec des variations au cours des saisons et une diminution significative de la salinité de cette zone entre 1973 et 1986.
 
-C'est pourquoi nous avons ensuite cherché à observer si ces modifications ont un impact significatif sur la taille des crabes.
+C'est pourquoi nous avons ensuite cherché à observer si ces modifications ont un impact significatif sur la taille des crabes. Nous avons alors pu démontrer que la longueur des crabes est correlée de manière significative à la température et la salinité moyenne annuelle ainsi que cette longueur dépend de manière significative du sexe du crabe.
 
 Il est intéressant de noter que les observations ont été faites il y a 40 ans ou plus, et que la situation a probablement beaucoup évolué depuis. Il serait donc intéressant de continuer la les échantillonnages et de les comparer. De plus, nous n'avons pas abordé ici l'impact de la pêche qui peut être très intéressant. C'est un problème multifactoriel qui nécessite plus d'approfondissement pour être compris et pour permettre une conservation du milieu et de cette espèce.
+
+Malheuresement il aurait fallut plus de données pour la température et la salinité afin d'avoir un modèle plus puissant et ainsi des résultats plus robustes. 
+
 
 Il serait utile d'ajouter le district comme variable supplémentaire dans nos analyses de covariance portant sur la température et la salinité, afin d'examiner si certains secteurs sont plus ou moins influencés par les courants autour de l'île.
