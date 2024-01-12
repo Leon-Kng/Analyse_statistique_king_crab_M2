@@ -17,12 +17,23 @@ header-includes: \renewcommand{\contentsname}{Table des matières}
 encoding: "UTF-8"
 ---
 
+```{=html}
 <style>
   body {
-    font-size: 12px; /* Changer cette valeur en fonction de la taille de police souhaitée */
+    font-size: 12px; 
   }
-</style>
+h1 {
+  font-size: 20px; 
+}
+h2 {
+  font-size: 18px; 
+}
+h3 {
+  font-size: 16px; 
+}
 
+</style>
+```
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, # Ici, par défaut, les chunks seront invisibles
                       eval = TRUE, # Tous les chunks sont évalués par défaut
@@ -32,14 +43,10 @@ knitr::opts_chunk$set(echo = FALSE, # Ici, par défaut, les chunks seront invisi
           class.source = "small",
                       message = FALSE, # Les messages de R ne sont pas sortis
                       warning = FALSE) # Les avertissement de R ne sont pas sortis
-knitr::opts_knit$set(root.dir = "~/cours/M2/MOST/projet/KingCrab-20231110") # pour rendre le working directory persistant d'un chunk de code à l'autre
+knitr::opts_knit$set(root.dir = "C:/Users/Nomade01/Desktop/M2 ECOEVO/MOST/Projet MOST/data") # pour rendre le working directory persistant d'un chunk de code à l'autre
 ```
 
-```{r initialisation}
-rm(list=ls())
-
-# Liste des package utilisés 
-
+```{r Installation des packages nécessaires si manquants, eval = FALSE}
 install.packages("ggplot2")
 install.packages("tidyverse")
 install.packages("bestNormalize")
@@ -47,7 +54,11 @@ install.packages("RColorBrewer")
 install.packages("plotly")
 install.packages("gridExtra")
 install.packages("gganimate")
+install.packages("car")
+```
 
+```{r initialisation}
+rm(list=ls())
 
 library(ggplot2) 
 library(tidyverse)
@@ -56,6 +67,7 @@ library(RColorBrewer)
 library(plotly)
 library(gridExtra)
 library(gganimate)
+library(car)
 
 ```
 
@@ -89,6 +101,7 @@ fullness <- read.table("fullness",stringsAsFactors=T)
 fullness <-rename(fullness, year= V1, size_mm= V2,fullness0=V3,fullness1_29=V4,fullness30_59=V5,fullness60_89=V6,fullness90_100=V7)
 
 ```
+
 ```{r Modifcation des données, echo=F}
 # Survey
 survey$year <- paste0("19", survey$year) # ajout de 19 devant les nb pour avoir une année
@@ -331,20 +344,22 @@ survey_map$fishing_district <- as.factor(survey_map$fishing_district)
 ```
 
 # Introduction
+
 ## King Crab
+
 ### Ecologie
 
 Le crabe royal du Kamtchatka, également connu sous le nom de red king crab (Paralithodes camtschaticus), est une espèce de crustacé décapode appartenant à la famille des Lithodidae. On les trouve dans les eaux froides de l'océan Pacifique Nord, principalement dans les régions proches de l'Alaska, de la Russie et du Japon. Ils préfèrent les fonds marins riches en nutriments à des profondeurs allant jusqu'à plusieurs centaines de mètres. Ces crustacés ont une carapace dure et massive, pouvant atteindre une envergure importante. Ils se caractérisent par leurs pinces robustes et puissantes, utilisées pour la capture de proies et la défense. Leur régime alimentaire varie, mais il inclut généralement des mollusques, des petits poissons et d'autres organismes marins.
 
-
 ### Pèche
+
 P.camtschaticus est célèbre pour sa chair délicate et savoureuse, ce qui en fait une espèce très prisée dans le secteur de la pêche commerciale. La pêche au crabe royal est une activité économiquement importante pour les communautés côtières de l'Alaska, de la Russie et d'autres régions où ces crustacés sont abondants. Ils sont exportés dans le monde entier pour répondre à la demande croissante de fruits de mer de qualité. La chair ferme et sucrée du crabe royal en fait un produit recherché sur le marché international. De ce fait, une gestion durable de la pêche au crabe royal est cruciale pour préserver les populations et les écosystèmes marins. Des mesures de conservation strictes sont mises en œuvre pour assurer la durabilité de cette ressource précieuse. Pour pouvoir instaurer un quota de pêche chaque année, le Département de la Pêche et du Jeu de l'Alaska réalise un important échantillonnage de P.camtschaticus dans les zones de pêche.
- 
+
 ## Zone d'étude
+
 La zone d'étude dans laquelle ont été collectées les données mises à notre disposition est l'archipel de Kodiak, situé au sud de l'Alaska, au nord de l'océan Pacifique. Les îles Kodiak s'étendent sur environ 9 300 kilomètres carrés avec une topographie variée, comprenant des montagnes, des fjords, des rivières et des vallées. La pêche y joue un rôle essentiel dans l'économie, la région est particulièrement connue pour sa pêche au saumon, au crabe et à d'autres fruits de mer.
 
 La carte ci-dessous représente l'île et l'emplacement des différents points de collecte en fonction des années (données provenant du fichier `survey` et `map`). Les zones de pêches sont organisées en quatre districts autour de l’île. Chaque point représente un échantillonnage (une ligne de pêche composées de plusieurs casiers), la taille des points est proportionnelle au nombre de crabes échantillonnés.
-
 
 ```{r Carte île Kodiak, echo = F, out.width = "75%", out.height = "75%"}
 # Créer un graphique de base avec Plotly
@@ -412,16 +427,18 @@ base_plot |>
   )
 
 ```
+
 ## Jeux de donnée
 
 ### Provenance des données
+
 Tous les ensembles de données, sauf la salinité (`salinity`) et la température (`celsius`), ont été fournis par le Département de la Pêche et du Jeu de l'Alaska. Les données de salinité et de température proviennent de Tom Royer de l’Institut des Sciences Marines à l’Université d'Alaska à Fairbanks,. Il y a aussi des statistiques sur la flotte de pêche et les captures commerciales (`fleet` et `catch`), pour chaque année entre 1960 et 1982. Certaines données de pêche sont réparties par district (les 4 zones colorées sur la carte).
 
 ### Modifications apportées
-Avant toute chose, de nombreuses modifications ont été nécessaires pour rendre les données exploitables. Il a fallu ranger, organiser et transformer les données afin de pouvoir les visualiser graphiquement et les analyser statistiquement. 
-Nous avons également regroupé le plus possible l’ensemble des jeux de donnée et calculé des moyennes annuelles lorsque les données disponibles étaient exprimées par année. Nous avons également ajouté des saisons aux mesures de salinité et de température afin de prendre en compte la variation de température pendant ces périodes.
 
-De nouvelles variables sont également créées, telles que le nombre total de crabes identifiés dans le document `survey `(une simple somme de tous les crabes identifiés sur une année) ou encore un regroupement de tous les crabes mâles dits "pre-recruits", définis comme des juvéniles qui ne peuvent pas être légalement pêchés.
+Avant toute chose, de nombreuses modifications ont été nécessaires pour rendre les données exploitables. Il a fallu ranger, organiser et transformer les données afin de pouvoir les visualiser graphiquement et les analyser statistiquement. Nous avons également regroupé le plus possible l’ensemble des jeux de donnée et calculé des moyennes annuelles lorsque les données disponibles étaient exprimées par année. Nous avons également ajouté des saisons aux mesures de salinité et de température afin de prendre en compte la variation de température pendant ces périodes.
+
+De nouvelles variables sont également créées, telles que le nombre total de crabes identifiés dans le document `survey`(une simple somme de tous les crabes identifiés sur une année) ou encore un regroupement de tous les crabes mâles dits "pre-recruits", définis comme des juvéniles qui ne peuvent pas être légalement pêchés.
 
 Afin de prendre en compte l’effort de pêche qui peut varier, nous avons divisé le nombre de crabes de chaque catégorie par le nombre de casiers utilisés pour chaque échantillon de `survey`. Nous avons ensuite calculé pour chaque année dans un premier temps la somme de ces valeurs pour obtenir un nombre de crabes corrigés par l’effort de pêche puis une moyenne de crabes par casiers (`per_pot`). Une simple régression linéaire nous a permis de déterminer que ces deux variables sont corrélées de manière très significative et ainsi que nous pourrions utiliser l’une des deux variables sans avoir de différence importante dans les résultats.
 
@@ -436,8 +453,8 @@ summary(test) # on remarque que c'est très fortement correlé donc pas de gross
 
 ```
 
-
 ## Observations préliminaires
+
 Dans l'optique de mieux comprendre nos données et de voir l'évolution des différents paramètres au cours du temps, nous avons procédé à quelques observations préliminaires. Cela permet de dégager les tendances observées dans nos données et ainsi de nous poser les bonnes questions puis d'y répondre à l'aide de modèles statistiques. Ci-dessous vous trouverez donc quelques graphiques représentant des données intéressantes.
 
 ```{r Graphique préliminiare, echo=F}
@@ -462,45 +479,43 @@ plot_len_year <- ggplot(dstns_simplified_long, aes(x = year, y = length_moy, col
 
 plot_price_year <- df_global |>
  filter(year >= 1973L & year <= 1982L) |>
- ggplot() + aes(x = year, y = price_pound) +
-  geom_point()+
-  geom_line() +  # Ajout des lignes
+ ggplot(aes(x = as.integer(year), y = price_pound)) +
+  geom_point() +  
+  geom_line() +
+  scale_x_continuous(breaks = 1973:1982, labels = as.character(1973:1982)) +
   labs(x = "Année", y = "Prix par livre", title = "Évolution du prix par livre au fil des années") +
   theme(axis.title.y = element_blank(), plot.title = element_text(hjust = 0.5))
 
-plot_pot_lifted_year <- fleet |>
-  filter(year >= 1964L & year <= 1982L) |>
-  ggplot() +
-  aes(x = year, y = total_pot_lifts) +
-  geom_point(shape = "circle", size = 1.5, colour = "#112446") +
-  labs(title = "Nombres total de casier soulevés par année
-       (effort de pêche)")+
-  geom_smooth(method = "lm",se = FALSE, color = "#99CC33") +
+plot_mass_crabe <- ggplot(fleet, aes(x = year, y = total_weight_caught)) +
+  geom_line() +
+  geom_point()+
+  labs(title = "Poids total de crabes capturés par année (kg)")+
   theme(axis.title.y = element_blank(),plot.title = element_text(hjust = 0.5))
+  
   
 
 # Afficher les graphiques dans une disposition de grille (2 lignes, 2 colonnes)
-grid.arrange(plot_count_year , plot_len_year , plot_price_year ,plot_pot_lifted_year , ncol = 2, nrow = 2)
+grid.arrange(plot_count_year , plot_len_year , plot_price_year ,plot_mass_crabe , ncol = 2, nrow = 2)
 
 ```
 
-La population totale de P.camtschaticus subit de fortes variations au cours du temps avec des pics importants et une décroissance critique entre 1980 et 1986, La taille des crabes, qu'ils soient mâles ou femelles, semble être en augmentation, malgré une période de diminution entre 1975 et 1978. Quand au prix des crabes à la livre, il subit une très forte augmentation à partir des années 1980, ce qui correspond à la raréfaction de la ressource due à la diminution de la population observée plus tôt sur cette période là. Enfin on remarque que 
-
+La population totale de P.camtschaticus subit de fortes variations au cours du temps avec des pics importants et une décroissance critique entre 1980 et 1986, La taille des crabes, qu'ils soient mâles ou femelles, semble être en augmentation, malgré une période de diminution entre 1975 et 1978. Quand au prix des crabes à la livre, il subit une très forte augmentation à partir des années 1980, ce qui correspond à la raréfaction de la ressource due à la diminution de la population observée plus tôt sur cette période là. Enfin on remarque que
 
 ## Problématiques
+
 Suite à ces observations, plusieurs questions nous sont apparues.
 
-Question 1 : Comment l'habitat du crabe royal du Kamtchatka évolue-t-il au fil du temps ? 
+**Question 1 :** Comment l'habitat du crabe royal du Kamtchatka évolue-t-il au fil du temps ?
 
-Question 2 : Ces modifications environnementales affectent-elles la taille des crabes royaux du Kamtchatka ? 
-
+**Question 2 :** Ces modifications environnementales affectent-elles la taille des crabes royaux du Kamtchatka ?
 
 # Résultats
-## Question 1
-### Température
-On veut donc tester si des variables abiotiques comme la température et la salinité des eaux autour des îles Kodiak varient avec le temps. Tout d’abord visualisons ces données graphiquement :
 
-```{r Graphiques température et salinité en fonction de l\'année et de la saison, echo=F}
+## Question 1
+
+On veut donc tester si des facteurs abiotiques comme la température et la salinité des eaux au large des côtes de l'Alaska à 100 mètres de profondeur varient avec le temps. Tout d’abord visualisons ces données graphiquement :
+
+```{r Graphiques température et salinité en fonction de l année et de la saison, echo=F, out.width = "75%", out.height = "75%"}
 plot_temp_year<-ggplot(celsius, aes(x = year, y = temp, color = saison))+
   geom_point()+
   labs(title = "Température (°C)")+
@@ -521,121 +536,77 @@ plot_sal_year<-ggplot(salinity, aes(x = year, y = salinity, color = saison))+
 grid.arrange(plot_temp_year, plot_sal_year, ncol = 2, nrow = 1)
 ```
 
-L'objectif de notre étude est d'évaluer l'existence d'une corrélation statistiquement significative entre la température des eaux autour des îles Kodiak et  les variables temporelles (année et saison), et leurs interactions potentielles. De même pour la salinité. Pour cela nous avons réalisé des analyses de la covariance (ANCOVA) :
+L'objectif de notre étude est d'évaluer l'existence d'une corrélation statistiquement significative entre la température des eaux autour des îles Kodiak et les variables temporelles (année et saison), et leurs interactions potentielles. De même pour la salinité. Pour cela nous avons réalisé des analyses de la covariance (ANCOVA).
 
-```{r ANCOVA - température en fonction de l’année et de la saison (avec et sans interaction), echo=T}
-# avec interaction
-ancova_temp_inter <- lm(temp ~ year*saison, data = celsius)
-# sans interaction
-ancova_temp <- lm(temp ~ year + saison, data = celsius)
-```
+### Température
 
-```{r Test des résidus, echo=T,fig.show='hide',results='hide'}
-# test de Shapiro sur les deux modèles
-shapiro.test(ancova_temp_inter$residuals)
-shapiro.test(ancova_temp$residuals)
-par(mfrow=c(2,2))
-plot(ancova_temp_inter)
-plot(ancova_temp)
-```
-Les tests de Shapiro ne sont pas significatifs (avec interaction : `p-value = 0.3044`
- et sans interaction :  `p-value = 0.57`) et l’observation du graphique quantile-quantile des résidus nous confirment que nos résidus sont normaux, nos conditions sont donc réunies et nous pouvons donc passer à la suite du test. 
+Formulation du modèle d'analyse de la covariance avec interaction :
 
-```{r Comparaison des modèles, echo=T,results='hide'}
-AIC(ancova_temp_inter, ancova_temp) 
-BIC(ancova_temp_inter, ancova_temp)
-anova(ancova_temp_inter, ancova_temp) 
-```
-on compare les valeurs d’AIC et BIC ainsi que les deux modèles entre eux (on regarde les valeur de R²). Ainsi, on voit que le modèle sans intéraction à un AIC et un BIC plus faible que celui avec intéraction. De plus sa valeur de R² est plus élevé, indiquant que ce modèle prédit mieux les données. On privilégira donc le modèle sans Interaction.
+Pour tout $i$ allant de 1 à 4, et $k$ allant de 1 à 22 on suppose que $y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$ représentant la température (en °C) telle que :
 
-Pour tout $i$ allant de 1 à 4, et $k$ allant de 1 à 22 on suppose que
-$y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$
-représentent la température (en °C) telle que :
+$$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik} + \gamma_i x_{ik} + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$ où:
 
-$$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik}  + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
-où:
-
--   $Y_{ik}$ est la $k$-ième observation de la température à la saison
-    $i$
+-   $Y_{ik}$ est la $k$-ième observation de la température à la saison $i$
 
 -   $\mu$ est l'intercept
 
 -   $\alpha_{i}$ est l'effet de la $i$-ème saison (sur l'intercept)
 
 -   $\beta$ est l’effet commun à toutes les saisons de l’année sur la température (pente de référence de la droite de régression)
--   $E_{ik}$ est l'erreur résiduelle de la $k$-ième observation de la
-    température à la saison $i$
+
+-   $\gamma_{i}$ est la covariable, c'est l'interaction entre la saison $i$ et l'année (effet de la saison $i$ sur la pente de référence)
+
+-   $E_{ik}$ est l'erreur résiduelle de la $k$-ième observation de la température à la saison $i$
 
 -   $x_{ik}$ est l'année de la $k$-ième observation de la saison $i$
 
+Nous testons la normalité de la température pour chaque saison à l'aide du test de Shapiro :
 
-
-```{r Test de l’ANCOVA,echo=T}
-anova(ancova_temp)
+```{r Test normalité de la température pour chaque saison, echo = T, eval = F}
+tapply(celsius$temp, celsius$saison, shapiro.test)
 ```
-Dans l'analyse effectuée avec R pour notre modèle, nous observons que les variables 'année' et 'saison' ont un impact significatif sur la température. Ceci est démontré par des valeurs de p extrêmement basses (pour l'année : `p-value = 0,0002174` et pour la saison : `p-value = 3,348e-16`). Ces résultats suggèrent une variation saisonnière claire de la température. De plus, ils indiquent une tendance progressive à l'augmentation de la température au fil des années. Cette tendance pourrait être potentiellement liée au changement climatique, bien que des études supplémentaires soient nécessaires pour établir une relation causale solide entre ces observations et le changement climatique global.
-L'estimation ponctuelle pour le coefficient X, tel que défini dans notre modèle, est de X, valeurs obtenues grâce à l’ajustement du modèle dans `R`.
 
+Aucun des tests n'est significatif, l'hypothèse de la normalité de $Y_i$ est donc validée, on peut passer à la suite.
+
+```{r ANCOVA - température en fonction de l’année et de la saison avec interaction, echo=T, fig.show='hide', class.output="small"}
+ancova_temp_inter <- lm(temp ~ year * saison, data = celsius)
+par(mfrow=c(2,2))
+plot(ancova_temp_inter)
+Anova(ancova_temp_inter)
+```
+
+On observe graphiquement que l'on a bien homoscédasticité, cette hypothèse est également validée. De plus on remarque que l'interaction entre l'année et la saison n'est pas significative, ainsi nous pouvons la retirer du modèle et formuler un nouveau modèle d'ANCOVA sans interaction.
+
+```{r ANCOVA Température sans interaction, echo=T, fig.show='hide',class.output="small"}
+ancova_temp <- lm(temp ~ year + saison, data = celsius)
+par(mfrow=c(2,2))
+plot(ancova_temp)
+Anova(ancova_temp)
+```
+
+L'année et la saison on un effet fortement significatif sur la température (année : $p-value = 3.528 \times 10^5$ et saison : $p-value = 3.348 \times 10^{-16}$), on garde donc ce modèle. Formulation du modèle final avec les mêmes notations que précédemment :
+
+$$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik} + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
+
+```{r Obtention des estimates du modèle n1, eval = F, echo = T}
+summary(ancova_temp)  
+```
+
+On obtient donc les estimations ponctuelles des paramètres définis plus haut :
+
+$\hat{\mu} = -221.73852$ / $\hat{\beta} = 0.11589$ / $\hat{\alpha}_{automne} = 0$ / $\hat{\alpha}_{été} = -2.27072$ / $\hat{\alpha}_{hiver} = -1.87579$ / $\hat{\alpha}_{printemps} = -3.56864$
+
+Dans l'analyse effectuée avec R pour notre modèle, nous observons que les variables 'année' et 'saison' ont un effet significatif sur la température. Ceci est démontré par des valeurs de p faibles (pour l'année : $p-value = 3.52810^{-5}$ et pour la saison : $p-value = 3.348 \times 10^{-16}$). Ces résultats suggèrent une variation saisonnière claire de la température. De plus, $\hat{\beta}$ étant positif, cela signifie que la température est correlée positivement avec les années et de manière significative. Cette tendance pourrait être potentiellement liée au changement climatique, bien que des études supplémentaires soient nécessaires avec beaucoup plus de données pour établir une corrélation plus solide entre ces observations et le changement climatique global.
 
 ### Salinité
-```{r ANCOVA - salinité en fonction de l’année et de la saison (avec interaction),echo=T,fig.show='hide'}
-# avec interaction
-ancova_salinity_inter <- lm(salinity ~ year*saison, data = salinity)
-```
-```{r Test des résidus n2, echo=T,fig.show='hide',results='hide'}
-shapiro.test(ancova_salinity_inter$residuals)
-par(mfrow=c(2,2))
-plot(ancova_salinity_inter )
-```
 
-D’après le test de Shapiro sur les résidus ainsi que l’observation du Q-Qplot résidus, les résidus ne sont pas normaux (p-value = 0.03701), on normalise donc la salinité pour chaque saison avec la fonction `boxcox` du package `bestNormalize` :
+Nous formulons également un modèle d'analyse de la covariance pour la salinité :
 
-```{r Normalisation de la salinité pour chaque saison,echo=T}
-salinity_normalized <- salinity |> 
-  group_by(saison) |> 
-  mutate(salinity_norm = boxcox(salinity)$x.t,
-         lambda = boxcox(salinity)$lambda)
-```
-On reformule donc deux modèles d’analyse de la variance (ANCOVA) avec les données normalisées et on les teste à nouveau.
-```{r ANCOVA - salinité normalisée en fonction de l’année et de la saison (avec et sans interaction),echo=T,results='hide'}
-ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized) # avec interaction 
-ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity_normalized) # sans interaction normalisée
-```
-```{r Test des hypothèses des 2 ANCOVA (avec ou sans interaction), echo=F,results='hide',fig.show='hide'}
-shapiro.test(ancova_salinity_inter_normalized$residuals)
-shapiro.test(ancova_salinity_normalized$residuals)
-par(mfrow=c(2,2))
-plot(ancova_salinity_inter_normalized)
-plot(ancova_salinity_normalized)
-```
-les deux nouveaux modèles sont bien normal (P-value respéctive des shapiro tests : 0.418 et 0.249)
-On compare le modèle avec interaction et le modèle sans interaction pour déterminer celui que l’on sélectionnera. 
+Pour tout $i$ allant de 1 à 4, et $k$ allant de 1 à 19 on suppose que $y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$ représentant la salinité (en parties par milliers) telle que :
 
-```{r Comparaison des 2 modèles,echo=F,results='hide'}
-AIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) BIC(ancova_salinity_normalized, ancova_salinity_inter_normalized)
-anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) 
-```
-on compare les valeurs d’AIC et BIC ainsi que les deux modèles visant la salinité entre eux (on regarde les valeur de R²). Ainsi, on voit que le modèle sans intéraction à un AIC et un BIC plus faible que celui avec intéraction. De plus sa valeur de R² est plus élevé, indiquant que ce modèle prédit mieux les données. On privilégira donc le modèle sans Interaction.
-La comparaison du modèle avec ou sans intéraction nous dirige vers le modèle sans intéraction. On peut alors le formuler de la manière suivante : 
+$$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik} + \gamma_i x_{ik} + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$ où:
 
-
-```{r Test de l’ANCOVA salinité, echo=T}
-anova(ancova_salinity_normalized) 
-ancova_salinity_normalized$coeff
-```
-Pour ce modèle, les résultats de la sortie R révèlent que la variable 'année' a un effet statistiquement significatif sur la salinité (`p-value de 0.001059`). En revanche, la variable 'saison' ne montre pas d’effet significatif (`p-value de 0.991987`). Ces résultats suggèrent que la salinité varie en fonction des années, ce qui pourrait être une conséquence du changement climatique. Cependant, il n'y a pas de variation significative de la salinité d'une saison à l'autre selon les données analysées.
-
-Le modèle linéaire utilisé est l’analyse de la variance (ANCOVA) :
-
-Pour tout $i$ allant de 1 à 4, et $k$ allant de 1 à 22 on suppose que
-$y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$
-représentent la température (en °C) telle que :
-
-$$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik}  + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
-où:
-
--   $Y_{ik}$ est la $k$-ième observation de la température à la saison
-    $i$
+-   $Y_{ik}$ est la $k$-ième observation de la salinité pour la saison $i$
 
 -   $\mu$ est l'intercept
 
@@ -643,60 +614,122 @@ où:
 
 -   $\beta$ est la pente de référence
 
--   $E_{ik}$ est l'erreur résiduelle de la $k$-ième observation de la
-    température à la saison $i$
+-   $\gamma_{i}$ est la covariable, c'est l'interaction entre la saison $i$ et l'année (effet de la saison $i$ sur la pente de référence)
+
+-   $E_{ik}$ est l'erreur résiduelle de la $k$-ième observation de la salinité à la saison $i$
 
 -   $x_{ik}$ est l'année de la $k$-ième observation de la saison $i$
 
+Nous testons la normalité de la salinité pour chaque saison à l'aide de tests de Shapiro :
 
-Dans les deux modèles, les P-valeurs sont inférieures au seuil, on rejet donc H0. On peut donc dire que la température et la salinité varie significativement au cours des années (et des saison pour la température mais pas pour la salinité)
+```{r Test de la normalité de la salinité pour chaque saison, echo = T, eval =F}
+tapply(salinity$salinity, salinity$saison, shapiro.test) 
+```
 
+Aucun test n'est significatif, on peut ainsi valider l'hypothèse de la normalité et passer à la suite.
+
+```{r ANCOVA - salinité en fonction de l’année et de la saison avec interaction,echo=T,fig.show='hide', class.output="small"}
+ancova_salinity_inter <- lm(salinity ~ year * saison, data = salinity)
+par(mfrow=c(2,2))
+plot(ancova_salinity_inter)
+Anova(ancova_salinity_inter)
+```
+
+On observe sur les graphiques du modèle que l'on a bien homoscédasticité, cette hypothèse du modèle est également validée. De plus l'interaction entre l'année et la saison n'est pas significative, nous pouvons alors reformuler un modèle d'ANCOVA sans interaction dans `R`.
+
+```{r ANCOVA - salinité en fonction de l’année et de la saison sans interaction, echo=T,fig.show='hide', class.output="small"}
+ancova_salinity <- lm(salinity ~ year + saison , data = salinity)
+par(mfrow=c(2,2))
+plot(ancova_salinity)
+Anova(ancova_salinity)
+```
+
+Pour ce modèle, les résultats de la sortie R révèlent que la variable `année` a un effet statistiquement significatif sur la salinité ($p-value = 0.001255$). La variable `saison` présente également un effet fortement significatif ($p-value = 3.062 \times 10^{-5}$). On garde donc ce modèle comme modèle final et on le reformule avec les mêmes notations que précédemment :
+
+$$Y_{ik} = \mu + \alpha_{i}+\beta x_{ik} + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
+
+```{r Obtention des estimates du modèle n2, eval = F, echo = T}
+summary(ancova_salinity)  
+```
+
+On obtient donc les estimations ponctuelles des paramètres définis plus haut :
+
+$\hat{\mu} = 90.210403$ / $\hat{\beta} = -0.029521$ / $\hat{\alpha}_{automne} = 0$ / $\hat{\alpha}_{été} = 0.206833$ / $\hat{\alpha}_{hiver} = -0.301767$ / $\hat{\alpha}_{printemps} = 0$
+
+Ces résultats suggèrent que la salinité est correlée négativement avec les années de manière significative. Cela signifie que la salinité diminue au cours du temps ce qui pourrait être une conséquence du changement climatique. En effet la fonte des glaces dans la zone d'étude est de plus en plus importante et pourrait expliquer en partie cette diminution de la salinité.
 
 ## Question 2
 
-Pour tout $i$ allant de 1 à 2, et $k$ allant de 1 à 407887 on suppose
-que $y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$
-représentent la longueur du crabe (en millimètres) telle que :
+Nous souhaitons ensuite tester si la température et la salinité ont un effet sur la longueur des crabes. Pour cela nous avons formuler un modèle d'analyse de la variance avec deux facteurs quantitatifs (`température` et `salinité`) et un facteur qualitatif (`sexe`). Nous avons également inclus une potentielle interaction entre le sexe et la température et salinité.
 
-$$Y_{ik} = (\mu + \alpha_i) + \beta_1 x_{ik1} + \beta_2 x_{ik2}  + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$
-où :
+Pour tout $i$ allant de 1 à 2, et $k$ allant de 1 à 407887 on suppose que $y_{ik}$ est la réalisation d'une variable aléatoire $Y_{ik}$ représentant la longueur du crabe (en millimètres) telle que :
 
--   $Y_{ik}$ est la $k$-ième observation de la longueur pour le niveau
-    $i$ du facteur sexe
+$$Y_{ik} = (\mu + \alpha_i) + (\beta_1 + \gamma_{i1}) x_{ik1} + (\beta_2 + \gamma_{i2}) x_{ik2}  + E_{ik} ,\qquad E_{ik} \overset{i.i.d}{\sim} \mathcal{N}(0, \sigma^2)$$ où :
+
+-   $Y_{ik}$ est la $k$-ième observation de la longueur pour le niveau $i$ du facteur sexe
 
 -   $\mu$ est l'intercept
 
--   $\alpha_{i}$ est l'effet du niveau $i$ du facteur sexe (sur
-    l'intercept)
+-   $\alpha_{i}$ est l'effet du niveau $i$ du facteur sexe (sur l'intercept)
 
 -   $\beta_1$ est l'effet de la température sur la longueur du crabe
 
+-   $\gamma_{i1}$ est l'interaction entre le sexe et la température
+
 -   $\beta_2$ est l'effet de la salinitié sur la longueur du crabe
 
--   $E_{ik}$ est l'erreur résiduelle de la $k$-ième observation de la
-    température au niveau $i$ du facteur saison
+-   $\gamma_{i1}$ est l'interaction entre le sexe et la salinité
 
--   $x_{ik1}$ est la température de la $k$-ième observation du niveau
-    $i$ du facteur sexe
+-   $E_{ik}$ est l'erreur résiduelle de la $k$-ième observation de la température au niveau $i$ du facteur saison
 
--   $x_{ik2}$ est la salinité de la $k$-ième observation du niveau $i$
-    du facteur sexe
+-   $x_{ik1}$ est la température de la $k$-ième observation du niveau $i$ du facteur sexe
+
+-   $x_{ik2}$ est la salinité de la $k$-ième observation du niveau $i$ du facteur sexe
+
+Concernant l'hypothèse de normalité de la longueur des crabes pour chaque sexe, nous avons un très grand nombre d'observations (329233 pour les femelles et 407887 pour les mâles), la distribution de la longueur tend alors à se rapprocher d'une distribution normale, c'est une conséquence du théorème central limite. Cette hypothèse du modèle est donc validée, on peut formuler le modèle dans `R` pour cela nous utilisons la température moyenne et salinité moyenne de chaque année et la longueur mesurée des crabes mâles et femelles.
+
+```{r ANCOVA longueur du crabe en fonction du sexe, de la température et de la salinité avec interaction, echo = T, out.width = "75%", out.height = "75%"}
+mod_taille_temp_sal_inter <- lm(length_mm ~ sex * (temp_moy + sal_moy), data = dstns_long)
+par(mfrow=c(2,2))
+plot(mod_taille_temp_sal_inter)
+Anova(mod_taille_temp_sal_inter)
+```
+
+En observant les graphiques du modèle (longs à générer de par le très grand nombre de données), on remarque que l'on a bien homoscédasticité, on peut valider cette hypothèse du modèle. On observe dans la sortie `R` du test que plusieurs éléments sont significatifs :
+
+-   l'effet du sexe sur la longueur des crabes : $p-value = 2,2 \times 10^{-16}$
+
+-   l'effet de la température sur la longueur des crabes : $p-value = 2,2 \times 10^{-16}$
+
+-   l'effet de la salinité sur la longueur des crabes : $p-value = 2,2 \times 10^{-16}$
+
+-   l'interaction entre le sexe et la température : $p-value = 2,2 \times 10^{-16}$
+
+-   l'interaction entre le sexe et la salinité : $p-value = 2,2 \times 10^{-16}$
+
+On garde donc notre modèle initial sans enlever de facteur et on calcule les estimates de chaque paramètre.
+
+```{r Calcul des estimates du modèle}
+summary(mod_taille_temp_sal_inter)
+```
+
+On obtient donc les estimations ponctuelles des paramètres définis plus haut :
+
+$\hat{\mu} = 796,56997$ / $\hat{\alpha}_{femelle} = 0 $ / $\hat{\alpha}_{mâle} = 386,40050$ / $\hat{\beta_1} = -1,04662$ / $\hat{\beta_2} = -21,12123$ / $\gamma_{i1} = -3,31042$ / $\gamma_{i2} = -10,99277$
+
+
+
+Nous pouvons en conclure que la longueur des crabes dépend de manière significative du sexe du crabe, cela confirme que l'on a un dimorphisme sexuel comme supposé en introduction. De plus la longueur des crabes est correlée négativement à la température moyenne annuelle de l'eau et à la salinité moyenne annuelle à 100 mètres de profondeur (de manière significative). Cela suggère que les crabes se développeraient moins bien ou atteindraient des tailles plus faibles lorsque la température et la salinité sont élevées. On pourrait l'expliquer par la modification négative de leur environnement lors de l'augmentation de ces facteurs abiotiques (qui peut être du au changement climatique), pouvant avoir un impact sur la disponibilité des ressources (proies par exemple). Cette réduction de la taille pourrait également être expliquée par un métabolisme des crabes moins efficace en sortant de certaines conditions environnementales ou encore que le développement des larves de crabes est impacté par cela et aurait des effets sur le long terme. 
 
 
 # Discussion / Ouverture
+
 Le changement climatique est un problème majeur de notre siècle, dont l'origine anthropique est désormais prouvée. L'augmentation des températures des océans en fait partie et impacte grandement l'écologie des espèces marines. C'est pourquoi, dans cette étude, nous avons voulu montrer que les îles Kodiak sont également touchées par ce changement des conditions abiotiques et qu'elles ont un impact sur P.camtschaticus, une ressource importante pour la pêche dans cette zone.
 
-La première partie de notre étude a clairement montré une augmentation significative des températures au cours des années et avec des variations au cours des saisons et une diminution significative de la salinité de cette zone entre 1973 et 1986. 
+La première partie de notre étude a clairement montré une augmentation significative des températures au cours des années et avec des variations au cours des saisons et une diminution significative de la salinité de cette zone entre 1973 et 1986.
 
 C'est pourquoi nous avons ensuite cherché à observer si ces modifications ont un impact significatif sur la taille des crabes.
 
-Il est intéressant de noter que les observations ont été faites il y a 40 ans ou plus, et que la situation a probablement beaucoup évolué depuis. Il serait donc intéressant de continuer la les échantillonnages et de les comparer. De plus, nous n'avons pas abordé ici l'impact de la pêche qui peut être très intéressant.
-C'est un problème multifactoriel qui nécessite plus d'approfondissement pour être compris et pour permettre une conservation du milieu et de cette espèce.
-
+Il est intéressant de noter que les observations ont été faites il y a 40 ans ou plus, et que la situation a probablement beaucoup évolué depuis. Il serait donc intéressant de continuer la les échantillonnages et de les comparer. De plus, nous n'avons pas abordé ici l'impact de la pêche qui peut être très intéressant. C'est un problème multifactoriel qui nécessite plus d'approfondissement pour être compris et pour permettre une conservation du milieu et de cette espèce.
 
 Il serait utile d'ajouter le district comme variable supplémentaire dans nos analyses de covariance portant sur la température et la salinité, afin d'examiner si certains secteurs sont plus ou moins influencés par les courants autour de l'île.
-
-
-
-
-
