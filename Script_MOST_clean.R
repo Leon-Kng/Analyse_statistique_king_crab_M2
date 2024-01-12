@@ -7,6 +7,7 @@ library(tidyverse)
 library(bestNormalize)
 library(RColorBrewer)
 library(report)
+library(car)
 
 
 ### CHARGEMENT DES DONNEES ##########################################################################################
@@ -311,31 +312,20 @@ ggplot(celsius, aes(x = year, y = temp, color = saison))+
   geom_smooth(method="lm", se=F)
 
 # Etude de l'effet de l'année et de la saison sur la température de l'eau
+tapply(celsius$temp, celsius$saison, shapiro.test) # test de la normalité de la température pour chaque saison
+
 # avec interaction
-ancova_temp_inter <- lm(temp ~ year*saison, data = celsius)
-shapiro.test(ancova_temp_inter$residuals)
-bartlett.test(ancova_temp_inter$residuals ~ celsius$saison)
+ancova_temp_inter <- lm(temp ~ year * saison, data = celsius)
 par(mfrow=c(2,2))
 plot(ancova_temp_inter)
-summary(ancova_temp_inter)
-anova(ancova_temp_inter) # *** year et saison mais pas l'interaction
+Anova(ancova_temp_inter)
 
-# sans interaction
+# interaction pas significative donc on reforumule le modèle sans interaction
 ancova_temp <- lm(temp ~ year + saison, data = celsius)
-shapiro.test(ancova_temp$residuals)
-bartlett.test(ancova_temp$residuals ~ celsius$saison)
 par(mfrow=c(2,2))
 plot(ancova_temp)
-summary(ancova_temp)
-anova(ancova_temp) # *** year et saison
-
-# comparaison des 2 modèles
-AIC(ancova_temp_inter, ancova_temp) # + AIC faible, mieux c'est : sans interaction mieux
-BIC(ancova_temp_inter, ancova_temp) # + BIC faible, mieux c'est : sans interaction mieux
-anova(ancova_temp_inter, ancova_temp) # + RSS faible, mieux c'est : pas de différence significative donc on prend le modèle le plus simple : sans interaction
-# meilleure p-value pour le modèle sans interaction
-# On utilise donc le modèle sans interaction
-
+anova(ancova_temp) # *** year et saison donc on les garde
+summary(ancova_temp) # on obtient les estimates des différents coefficients
 
 
 
@@ -346,44 +336,41 @@ ggplot(salinity, aes(x = year, y = salinity, color = saison))+
   labs(x = "Année", y = "Salinité de l'eau à 100m de profondeur (en parties par milliers)", color = "Saison")+
   geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la salinté sur les variables de survey
 
+# test de la normalité de la salinité
+tapply(salinity$salinity, salinity$saison, shapiro.test) 
+
 # ANCOVA avec interaction
-ancova_salinity_inter <- lm(salinity ~ year*saison, data = salinity)
-shapiro.test(ancova_salinity_inter$residuals)
+ancova_salinity_inter <- lm(salinity ~ year * saison, data = salinity)
+#shapiro.test(ancova_salinity_inter$residuals)
 par(mfrow=c(2,2))
 plot(ancova_salinity_inter) # résidus non normaux donc on va normaliser la salinité pour chaque saison
 
 # Test autre méthode de normalisation
-salinity_normalized <- salinity %>%
-  group_by(saison) %>%
-  mutate(salinity_norm = boxcox(salinity)$x.t)
+salinity <- salinity |> 
+  group_by(saison) |> 
+  mutate(salinity_norm = boxcox(salinity)$x.t,
+         lambda = boxcox(salinity)$lambda)
 
+tapply(salinity$salinity_norm, salinity$saison, shapiro.test) 
 
 # ANCOVA avec interaction 
-ancova_salinity_inter_normalized <- lm(salinity_norm ~ year*saison, data = salinity_normalized)
-shapiro.test(ancova_salinity_inter_normalized$residuals)
-bartlett.test(ancova_salinity_inter_normalized$residuals ~ salinity_normalized$saison)
+ancova_salinity_inter_normalized <- lm(salinity_norm ~ year * saison, data = salinity)
+#shapiro.test(ancova_salinity_inter_normalized$residuals)
 par(mfrow=c(2,2))
 plot(ancova_salinity_inter_normalized)
-summary(ancova_salinity_inter_normalized)
-anova(ancova_salinity_inter_normalized) #  ** year mais saison pas significatif
+Anova(ancova_salinity_inter_normalized) #  interaction pas significative donc on l'enlève
 
 # ANCOVA sans interaction normalisée
-ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity_normalized)
-shapiro.test(ancova_salinity_normalized$residuals)
-bartlett.test(ancova_salinity_normalized$residuals ~ salinity_normalized$saison)
+ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity)
+#shapiro.test(ancova_salinity_normalized$residuals)
 par(mfrow=c(2,2))
 plot(ancova_salinity_normalized)
-summary(ancova_salinity_normalized)
-anova(ancova_salinity_normalized) # ** year mais saison pas significatif
+anova(ancova_salinity_normalized) # saison pas significative donc on l'enlève
 
-# Test des 2 modèles
-AIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + AIC faible, mieux c'est : sans interaction mieux
-BIC(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + BIC faible, mieux c'est : sans interaction mieux
-anova(ancova_salinity_normalized, ancova_salinity_inter_normalized) # + RSS faible, mieux c'est : pas de différence significative donc on prend le modèle le plus simple : sans interaction
-# p-value plus faible pour le modèle sans interaction
-# on choisit donc le modèle sans interaction
-
-
+# Régression linéaire
+salinity_year <- lm(salinity_norm ~ year, data = salinity)
+plot(salinity_year)
+summary(salinity_year)
 
 
 ### ANALYSE OEUFS ############################################################################################################
@@ -420,32 +407,14 @@ ggplot(dstns_long, aes(x = as.factor(sal_moy), y = length_mm, fill = sex))+
   geom_violin()
 
 # ANCOVA - 3 FACTEURS
-mod_taille_temp_sal <- lm(length_mm ~ temp_moy + sal_moy + sex, data = dstns_long)
+mod_taille_temp_sal_inter <- lm(length_mm ~ sex * (temp_moy + sal_moy), data = dstns_long)
+
 par(mfrow=c(2,2))
 plot(mod_taille_temp_sal)
-summary(mod_taille_temp_sal) # R² faible donc bcp de variance pas expliquée, on peut justifier cela par le fait que les différentes classes d'âges sont fusionnées
 
+Anova(mod_taille_temp_sal_inter)
+summary(mod_taille_temp_sal_inter) # R² faible donc bcp de variance pas expliquée, on peut justifier cela par le fait que les différentes classes d'âges sont fusionnées
 
-# Call:
-#   lm(formula = length_mm ~ temp_moy + sal_moy + sex, data = dstns_long)
-# 
-# Residuals:
-#   Min      1Q  Median      3Q     Max 
-# -98.103 -13.387   0.585  14.824  81.172 
-# 
-# Coefficients:
-#   Estimate Std. Error t value Pr(>|t|)    
-# (Intercept) 1016.74501    8.35462   121.7   <2e-16 ***
-#   temp_moy      -2.90902    0.02857  -101.8   <2e-16 ***
-#   sal_moy      -27.67978    0.26201  -105.6   <2e-16 ***
-#   sexM          16.44091    0.05267   312.2   <2e-16 ***
-#   ---
-#   Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
-# 
-# Residual standard error: 21.95 on 712480 degrees of freedom
-# (24636 observations effacées parce que manquantes)
-# Multiple R-squared:  0.1467,	Adjusted R-squared:  0.1467 
-# F-statistic: 4.082e+04 on 3 and 712480 DF,  p-value: < 2.2e-16
 
 
 # On va tester si température seule a un effet car graphiquement on ne le voit pas, pas à inclure dans le rapport
@@ -457,3 +426,9 @@ par(mfrow=c(2,2))
 plot(mod_taille_temp_M)
 summary(mod_taille_temp_M)
 
+
+celsius_k <- celsius |> 
+  filter(saison == "automne")
+celsius_k
+
+table(dstns_long$sex)
