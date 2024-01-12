@@ -311,6 +311,8 @@ ggplot(celsius, aes(x = year, y = temp, color = saison))+
   labs(x = "Année", y = "Température de l'eau à 100m de profondeur (en °C)", color = "Saison")+
   geom_smooth(method="lm", se=F)
 
+table(celsius$saison)
+
 # Etude de l'effet de l'année et de la saison sur la température de l'eau
 tapply(celsius$temp, celsius$saison, shapiro.test) # test de la normalité de la température pour chaque saison
 
@@ -324,7 +326,7 @@ Anova(ancova_temp_inter)
 ancova_temp <- lm(temp ~ year + saison, data = celsius)
 par(mfrow=c(2,2))
 plot(ancova_temp)
-anova(ancova_temp) # *** year et saison donc on les garde
+Anova(ancova_temp) # *** year et saison donc on les garde
 summary(ancova_temp) # on obtient les estimates des différents coefficients
 
 
@@ -335,6 +337,8 @@ ggplot(salinity, aes(x = year, y = salinity, color = saison))+
   geom_point()+
   labs(x = "Année", y = "Salinité de l'eau à 100m de profondeur (en parties par milliers)", color = "Saison")+
   geom_smooth(method="lm", se=F) # faire une ancova avec la salinité en fonction de l'année et de la saison puis tester l'effet de la salinté sur les variables de survey
+
+table(salinity$saison)
 
 # test de la normalité de la salinité
 tapply(salinity$salinity, salinity$saison, shapiro.test) 
@@ -365,7 +369,14 @@ ancova_salinity_normalized <- lm(salinity_norm ~ year + saison , data = salinity
 #shapiro.test(ancova_salinity_normalized$residuals)
 par(mfrow=c(2,2))
 plot(ancova_salinity_normalized)
-anova(ancova_salinity_normalized) # saison pas significative donc on l'enlève
+Anova(ancova_salinity_normalized) # saison pas significative donc on l'enlève
+
+# ANCOVA sans interaction
+ancova_salinity <- lm(salinity ~ year + saison , data = salinity)
+#shapiro.test(ancova_salinity_normalized$residuals)
+par(mfrow=c(2,2))
+plot(ancova_salinity)
+Anova(ancova_salinity)
 
 # Régression linéaire
 salinity_year <- lm(salinity_norm ~ year, data = salinity)
@@ -398,6 +409,8 @@ ggplot(dstns_simplified_long, aes(x = sal_moy, y = length_moy, color = sex))+
   geom_point()+
   geom_smooth(method = "lm", se = F)
 
+table(dstns_long$sex)
+
 # Longueur en fonction de la température moyenne de l'année, pour chaque sexe
 ggplot(dstns_long, aes(x = as.factor(temp_moy), y = length_mm, fill = sex))+
   geom_violin()
@@ -406,7 +419,8 @@ ggplot(dstns_long, aes(x = as.factor(temp_moy), y = length_mm, fill = sex))+
 ggplot(dstns_long, aes(x = as.factor(sal_moy), y = length_mm, fill = sex))+
   geom_violin()
 
-# ANCOVA - 3 FACTEURS
+# ANCOVA - 3 FACTEURS avec inter
+tapply(dstns_long$length_mm, dstns_long$sex, shapiro.test) # pas possible mais tend vers normalité car très grand nombre de valeurs
 mod_taille_temp_sal_inter <- lm(length_mm ~ sex * (temp_moy + sal_moy), data = dstns_long)
 
 par(mfrow=c(2,2))
@@ -414,7 +428,6 @@ plot(mod_taille_temp_sal)
 
 Anova(mod_taille_temp_sal_inter)
 summary(mod_taille_temp_sal_inter) # R² faible donc bcp de variance pas expliquée, on peut justifier cela par le fait que les différentes classes d'âges sont fusionnées
-
 
 
 # On va tester si température seule a un effet car graphiquement on ne le voit pas, pas à inclure dans le rapport
@@ -427,8 +440,3 @@ plot(mod_taille_temp_M)
 summary(mod_taille_temp_M)
 
 
-celsius_k <- celsius |> 
-  filter(saison == "automne")
-celsius_k
-
-table(dstns_long$sex)
