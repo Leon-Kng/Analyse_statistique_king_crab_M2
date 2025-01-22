@@ -1,0 +1,1 @@
+To explore the project, open the `.Rproj` file first, then you can knit the `.Rmd` file.
